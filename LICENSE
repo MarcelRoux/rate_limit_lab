@@ -186,7 +186,12 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Rate Limiter Evaluation Framework
+   Copyright 2026 Marcel Roux
+
+   This product includes software developed by Marcel Roux
+   for the purpose of evaluating rate limiting strategies
+   across multiple protocols and deployment models.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
