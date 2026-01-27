@@ -4,9 +4,10 @@ use governor::{Quota, RateLimiter};
 use crate::event_sink::EventSink;
 use crate::models::{Decision, Event, InstrumentationLevel, KeyedRateLimiter, Operation};
 
-pub struct KeyedLimiter<K, S: EventSink>
+pub struct KeyedLimiter<K, S>
 where
     K: Eq + std::hash::Hash + Clone,
+    S: EventSink,
 {
     limiter: KeyedRateLimiter<K>,
     sink: S,
