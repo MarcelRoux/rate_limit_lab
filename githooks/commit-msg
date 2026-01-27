@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+set -eu
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG="$(cat "$COMMIT_MSG_FILE")"
+
+CONVENTIONAL_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore)(\([a-z0-9_-]+\))?: .+'
+
+if ! printf "%s" "$COMMIT_MSG" | grep -Eq "$CONVENTIONAL_REGEX"; then
+  echo "❌ Commit message does not follow Conventional Commits."
+  echo
+  echo "Expected format:"
+  echo "  feat(core): add rate limiter"
+  echo "  fix: correct retry_after logic"
+  echo
+  exit 1
+fi

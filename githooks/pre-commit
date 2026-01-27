@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+set -eu
+
+echo "🔍 Running cargo fmt --check..."
+cargo fmt --check
+
+echo "🔍 Running cargo check --all-targets..."
+cargo check --all-targets
+
+echo "🔍 Running cargo clippy -- -D warnings..."
+cargo clippy -- -D warnings
+
+if ! command -v typos >/dev/null 2>&1; then
+  echo "📦 Installing typos..."
+  cargo install typos-cli --locked
+fi
+
+echo "🔍 Running typos..."
+typos
