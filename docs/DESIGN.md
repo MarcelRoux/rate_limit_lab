@@ -135,6 +135,25 @@ flowchart TB
 
 ## 6. Milestone-Driven Delivery Plan
 
+### M0 - Development Environment
+
+**Objective:** Establish a consistent and enforceable developer environment for quality, style, and correctness prior to other milestone work.
+
+- **M0.1 - Git Hooks**
+  - pre-commit
+  - pre-push
+  - commit-msg
+
+- **M0.2 - Rust Tooling**
+  - `cargo fmt` check formatting
+  - `cargo clippy` enforces idiomatic rust
+  - `typos` checks spelling
+
+- ** M0.3 - Installation**
+  - script to install all git hooks
+
+**Outcome:** All contributors have consistent environment setup for ensuring improved code quality.
+
 ### M1 – Core Evaluation Foundation
 
 **Objective:** Establish protocol-agnostic execution and instrumentation.
