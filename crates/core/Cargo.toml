@@ -1,0 +1,8 @@
+[package]
+name = "core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+governor = { version = "0.10.4" }
+nonzero_ext = { version = "0.2.0" }
