@@ -20,14 +20,15 @@ fn zero_rate_is_rejected() {
 #[test]
 fn limiter_refills_after_interval() {
     let limit = RateLimit::per_second(1).unwrap();
-    let limiter = direct_limiter(limit);
+    let sink = NoopEventSink;
+    let limiter = direct_limiter(limit.to_quota(), sink, InstrumentationLevel::Off);
 
-    assert!(limiter.check().is_ok());
-    assert!(limiter.check().is_err());
+    assert_eq!(limiter.check(), Decision::Allow);
+    assert!(matches!(limiter.check(), Decision::Deny { .. }));
 
     sleep(Duration::from_secs(1));
 
-    assert!(limiter.check().is_ok());
+    assert_eq!(limiter.check(), Decision::Allow);
 }
 
 #[test]

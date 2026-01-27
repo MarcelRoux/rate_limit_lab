@@ -1,16 +1,19 @@
+use core::event_sink::NoopEventSink;
 use core::factory::keyed_limiter;
-use core::models::{RateLimit, RateLimitKey};
+use core::models::{Decision, InstrumentationLevel, RateLimit, RateLimitKey};
 
 #[test]
 fn keyed_limit_isolated_per_key() {
     let limit = RateLimit::per_second(1).unwrap();
-    let limiter = keyed_limiter::<RateLimitKey>(limit);
+    let sink = NoopEventSink;
+    let limiter =
+        keyed_limiter::<RateLimitKey, _>(limit.to_quota(), sink, InstrumentationLevel::Off);
 
     let a = RateLimitKey("a".into());
     let b = RateLimitKey("b".into());
 
-    assert!(limiter.check_key(&a).is_ok());
-    assert!(limiter.check_key(&a).is_err());
+    assert_eq!(limiter.check(&a), Decision::Allow);
+    assert!(matches!(limiter.check(&a), Decision::Deny { .. }));
 
-    assert!(limiter.check_key(&b).is_ok());
+    assert_eq!(limiter.check(&b), Decision::Allow);
 }
