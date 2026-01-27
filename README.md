@@ -1,6 +1,17 @@
 # rate_limit_lab
 The Rate Limiter Evaluation Framework is a protocol-agnostic system for designing, testing, and empirically evaluating rate-limiting strategies.
 
+## Development Environment (M0)
+
+Before starting development, ensure the repository hooks and tooling are installed.
+
+### 1. Install Git Hooks
+Run the installation script:
+
+```bash
+. ./scripts/install-hooks.sh
+```
+
 ## License
 
 This project is licensed under the Apache License 2.0.
@@ -26,3 +37,7 @@ aggregation purposes.
 
 While robots.txt is advisory, it serves as an explicit declaration
 of usage intent.
+
+## Tooling
+
+Enforces conventional commits, static checks, spelling validation, and test gating via custom Git hooks.
