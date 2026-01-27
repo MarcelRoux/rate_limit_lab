@@ -1,16 +1,29 @@
-use governor::RateLimiter;
+use governor::Quota;
 
-use crate::models::{DirectRateLimiter, KeyedRateLimiter, RateLimit};
+use crate::direct_limiter::DirectLimiter;
+use crate::event_sink::EventSink;
+use crate::keyed_limiter::KeyedLimiter;
+use crate::models::InstrumentationLevel;
 
-/// Factory for direct (non-keyed) rate limiters.
-pub fn direct_limiter(limit: RateLimit) -> DirectRateLimiter {
-    RateLimiter::direct(limit.to_quota())
+pub fn direct_limiter<S>(
+    quota: Quota,
+    sink: S,
+    instrumentation: InstrumentationLevel,
+) -> DirectLimiter<S>
+where
+    S: EventSink,
+{
+    DirectLimiter::new(quota, sink, instrumentation)
 }
 
-/// Factory for keyed rate limiters.
-pub fn keyed_limiter<K>(limit: RateLimit) -> KeyedRateLimiter<K>
+pub fn keyed_limiter<K, S>(
+    quota: Quota,
+    sink: S,
+    instrumentation: InstrumentationLevel,
+) -> KeyedLimiter<K, S>
 where
     K: Eq + std::hash::Hash + Clone,
+    S: EventSink,
 {
-    RateLimiter::keyed(limit.to_quota())
+    KeyedLimiter::new(quota, sink, instrumentation)
 }
