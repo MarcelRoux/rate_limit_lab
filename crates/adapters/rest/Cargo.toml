@@ -1,0 +1,17 @@
+[package]
+name = "rest"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rate_limit = { path = "../../rate_limit" }
+axum = { version = "=0.8.8" }
+futures = { version = "=0.3.31" }
+tower = { version = "=0.5.3" }
+
+[dev-dependencies]
+rate_limit = { path = "../../rate_limit" }
+tokio = { version = "=1.49.0", features = ["full"] }
+axum = { version = "=0.8.8"}
+hyper = { version = "=1.8.1"}
+tower = { version = "=0.5.3"}
