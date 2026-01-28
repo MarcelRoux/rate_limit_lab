@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use core::event_sink::EventSink;
-use core::models::Event;
+use rate_limit::event_sink::EventSink;
+use rate_limit::models::Event;
 
 /// Thread-safe event recorder for tests.
 #[cfg(test)]

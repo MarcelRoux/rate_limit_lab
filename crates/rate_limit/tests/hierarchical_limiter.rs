@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use core::factory::hierarchical_limiter;
-use core::models::{Decision, InstrumentationLevel, RateLimit, RateLimitKey};
+use rate_limit::factory::hierarchical_limiter;
+use rate_limit::models::{Decision, InstrumentationLevel, RateLimit, RateLimitKey};
 
 mod support {
     pub mod recording_event_sink;

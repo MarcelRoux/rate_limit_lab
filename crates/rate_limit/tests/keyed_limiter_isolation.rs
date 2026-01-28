@@ -1,6 +1,6 @@
-use core::event_sink::NoopEventSink;
-use core::factory::keyed_limiter;
-use core::models::{Decision, InstrumentationLevel, RateLimit, RateLimitKey};
+use rate_limit::event_sink::NoopEventSink;
+use rate_limit::factory::keyed_limiter;
+use rate_limit::models::{Decision, InstrumentationLevel, RateLimit, RateLimitKey};
 
 #[test]
 fn keyed_limit_isolated_per_key() {

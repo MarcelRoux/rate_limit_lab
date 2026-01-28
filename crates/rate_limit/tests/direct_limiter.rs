@@ -4,12 +4,12 @@ use std::time::Duration;
 
 use governor::Quota;
 
-use core::direct_limiter::DirectLimiter;
-use core::event_sink::NoopEventSink;
-use core::factory::direct_limiter;
-use core::models::Decision;
-use core::models::InstrumentationLevel;
-use core::models::RateLimit;
+use rate_limit::direct_limiter::DirectLimiter;
+use rate_limit::event_sink::NoopEventSink;
+use rate_limit::factory::direct_limiter;
+use rate_limit::models::Decision;
+use rate_limit::models::InstrumentationLevel;
+use rate_limit::models::RateLimit;
 
 #[test]
 fn zero_rate_is_rejected() {

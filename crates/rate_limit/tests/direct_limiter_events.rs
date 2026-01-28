@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use governor::Quota;
 
-use core::direct_limiter::DirectLimiter;
-use core::models::{Decision, Event, InstrumentationLevel, Operation};
+use rate_limit::direct_limiter::DirectLimiter;
+use rate_limit::models::{Decision, Event, InstrumentationLevel, Operation};
 
 mod support {
     pub mod recording_event_sink;
