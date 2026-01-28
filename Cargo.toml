@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "crates/core"
-]
+    "crates/adapters/rest",
+    "crates/rate_limit"]
 resolver = "3"
