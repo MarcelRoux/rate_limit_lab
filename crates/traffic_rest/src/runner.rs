@@ -44,13 +44,17 @@ pub async fn run_profile(profile: TrafficProfile, key_mode: KeyMode) -> Vec<Obse
     let mut selector = KeySelector::new(key_mode);
     let mut joinset: JoinSet<Option<Observation>> = JoinSet::new();
 
-    let interval = if profile.requests_per_second == 0 {
-        // avoid div-by-zero: treat as "no traffic"
-        Duration::from_secs(3600)
-    } else {
-        Duration::from_secs_f64(1.0 / profile.requests_per_second as f64)
-    };
-    let mut ticker = tokio::time::interval(interval);
+    // Batch-per-tick pacing: tick at 1ms and issue N requests per tick.
+    // This avoids relying on sub-millisecond timer granularity at high RPS.
+    let tick = Duration::from_millis(1);
+    let ticks_per_sec: u64 = 1_000;
+
+    let rps = profile.requests_per_second;
+    let base_per_tick: u64 = if rps == 0 { 0 } else { rps / ticks_per_sec };
+    let remainder: u64 = if rps == 0 { 0 } else { rps % ticks_per_sec };
+    let mut remainder_acc: u64 = 0;
+
+    let mut ticker = tokio::time::interval(tick);
 
     let started = Instant::now();
     let deadline = started + profile.duration;
@@ -58,21 +62,32 @@ pub async fn run_profile(profile: TrafficProfile, key_mode: KeyMode) -> Vec<Obse
     while Instant::now() < deadline {
         ticker.tick().await;
 
-        // Concurrency bound
-        let permit = match sem.clone().acquire_owned().await {
-            Ok(p) => p,
-            Err(_) => break,
-        };
+        // Compute how many requests to issue this tick.
+        // Distribute the remainder across ticks to match the requested RPS over time.
+        let mut to_send = base_per_tick;
+        remainder_acc += remainder;
+        if remainder_acc >= ticks_per_sec {
+            to_send += 1;
+            remainder_acc -= ticks_per_sec;
+        }
 
-        let url = profile.target_url.clone();
-        let key_header = profile.key_header.clone();
-        let key = selector.next_key().map(|s| s.to_string());
-        let client = client.clone();
+        for _ in 0..to_send {
+            // Concurrency bound
+            let permit = match sem.clone().acquire_owned().await {
+                Ok(p) => p,
+                Err(_) => break,
+            };
 
-        joinset.spawn(async move {
-            let _permit = permit;
-            (send_request(&client, &url, &key_header, key.as_deref()).await).ok()
-        });
+            let url = profile.target_url.clone();
+            let key_header = profile.key_header.clone();
+            let key = selector.next_key().map(|s| s.to_string());
+            let client = client.clone();
+
+            joinset.spawn(async move {
+                let _permit = permit;
+                (send_request(&client, &url, &key_header, key.as_deref()).await).ok()
+            });
+        }
     }
 
     // Drain
