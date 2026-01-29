@@ -12,6 +12,18 @@ Run the installation script:
 . ./scripts/install-hooks.sh
 ```
 
+## Traffic Generator Design Notes
+
+The REST traffic generator used throughout this project was developed with an emphasis on **repeatability, interpretability, and controlled tradeoffs**, rather than raw maximum throughput alone.
+
+During M2.4, multiple pacing and execution models were evaluated (including queue-based worker pools) to understand their impact on load fidelity, concurrency behavior, and system observability. The final design intentionally favors a simpler batch-per-tick model that is sufficient for single-node and early distributed experiments, while remaining extensible.
+
+A detailed discussion of the rationale, alternatives considered, empirical findings, and future improvement areas is documented here:
+
+📄 **[Traffic Generator Design Notes](docs/design/traffic_generator.md)**
+
+This document serves as architectural context for current and future milestones (M3+), and explains why certain complexity was deferred in favor of clarity and correctness at this stage.
+
 ## License
 
 This project is licensed under the Apache License 2.0.
