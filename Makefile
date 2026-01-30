@@ -22,6 +22,7 @@ help:
 	@echo "  make reset          Stop all + remove volumes"
 	@echo ""
 	@echo "Testing:"
+	@echo "  make test-all-targets     Run all integration tests - no features"
 	@echo "  make test-redis-backend   Run state_backend Redis integration tests"
 	@echo ""
 	@echo "Environment:"
@@ -59,6 +60,10 @@ down:
 .PHONY: reset
 reset:
 	docker compose -f $(COMPOSE_FILE) down -v
+
+.PHONY: test-all-targets
+test-all-targets:
+	cargo test --all-targets
 
 .PHONY: test-redis-backend
 test-redis-backend:
