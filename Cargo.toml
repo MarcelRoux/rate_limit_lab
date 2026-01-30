@@ -2,5 +2,7 @@
 members = [
     "crates/adapters/rest",
     "crates/rate_limit",
+    "crates/rate_limit_distributed",
+    "crates/state_backend",
     "crates/traffic_rest"]
 resolver = "3"
