@@ -7,9 +7,11 @@ use rate_limit::direct_limiter::DirectLimiter;
 use rate_limit::models::{Decision, Event, InstrumentationLevel, Operation};
 
 mod support {
+    pub mod recorded_events;
     pub mod recording_event_sink;
 }
 
+use support::recorded_events::RecordedEvents;
 use support::recording_event_sink::RecordingEventSink;
 
 #[test]
