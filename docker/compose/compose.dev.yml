@@ -1,0 +1,31 @@
+name: rate-limit-lab
+
+services:
+  redis:
+    image: redis:8.4
+    container_name: redis
+    command: ["redis-server"]
+    ports:
+      - "6379:6379"
+    profiles: ["redis"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 2s
+      timeout: 1s
+      retries: 20
+    env_file:
+      - ../env/dev.env
+
+  # Planned (optional). Disabled unless you explicitly start it.
+  valkey:
+    image: valkey/valkey:8
+    container_name: valkey
+    command: ["valkey-server"]
+    ports:
+      - "6380:6379"
+    profiles: ["valkey"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "PING"]
+      interval: 2s
+      timeout: 1s
+      retries: 20
