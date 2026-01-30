@@ -1,0 +1,9 @@
+[package]
+name = "rate_limit_distributed"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rate_limit = { path = "../rate_limit" }
+state_backend = { path = "../state_backend" }
+tokio = { version = "=1.49.0", features = ["macros", "rt-multi-thread"] }
