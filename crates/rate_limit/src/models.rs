@@ -39,6 +39,12 @@ impl RateLimit {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RateLimitKey(pub String);
 
+impl AsRef<str> for RateLimitKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 /// What operation is being evaluated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operation {
