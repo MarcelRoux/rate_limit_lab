@@ -4,6 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+axum = { version = "=0.8.8"}
 rate_limit = { path = "../rate_limit" }
 state_backend = { path = "../state_backend" }
-tokio = { version = "=1.49.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "=1.49.0", features = ["full"] }
+
+[dev-dependencies]
+async-trait = { version = "=0.1.89" }
+axum = { version = "=0.8.8"}
+tokio = { version = "=1.49.0", features = ["rt-multi-thread", "macros", "time", "sync"] }
+
+[features]
+# Enables integration tests that hit a real Redis instance.
+redis-tests = []

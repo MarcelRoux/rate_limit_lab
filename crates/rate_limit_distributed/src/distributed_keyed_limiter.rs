@@ -92,10 +92,7 @@ where
         }
     }
 
-    pub async fn check(&self, key: &K) -> Decision
-    where
-        K: ToString,
-    {
+    pub async fn check(&self, key: &K) -> Decision {
         let operation = Operation::RateLimitCheck;
 
         let backend_result = self
@@ -113,6 +110,29 @@ where
                     retry_after: BACKEND_ERROR_RETRY_AFTER,
                 }
             }
+        };
+
+        if self.instrumentation != InstrumentationLevel::Off {
+            self.sink.emit(Event::OperationCompleted {
+                operation,
+                decision: decision.clone(),
+            });
+        }
+
+        decision
+    }
+
+    pub async fn check_str(&self, key: &str) -> Decision {
+        let operation = Operation::RateLimitCheck;
+
+        let backend_result = self.backend.check(&self.namespace, key, self.limit).await;
+
+        let decision = match backend_result {
+            Ok(BackendDecision::Allow) => Decision::Allow,
+            Ok(BackendDecision::Deny { retry_after }) => Decision::Deny { retry_after },
+            Err(_) => Decision::Deny {
+                retry_after: BACKEND_ERROR_RETRY_AFTER,
+            },
         };
 
         if self.instrumentation != InstrumentationLevel::Off {
