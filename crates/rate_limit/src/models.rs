@@ -9,8 +9,7 @@ use governor::{
 
 /// Public types alias for clarity.
 pub type DirectRateLimiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>;
-pub type KeyedRateLimiter<K> =
-    governor::RateLimiter<K, DashMapStateStore<K>, DefaultClock, NoOpMiddleware>;
+pub type KeyedRateLimiter<K> = RateLimiter<K, DashMapStateStore<K>, DefaultClock, NoOpMiddleware>;
 
 /// Domain-level rate limit definition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
