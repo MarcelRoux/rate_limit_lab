@@ -16,6 +16,7 @@ impl<T: EventSink> EventSink for Arc<T> {
 }
 
 /// Default no-op sink (zero overhead).
+#[derive(Clone)]
 pub struct NoopEventSink;
 
 impl EventSink for NoopEventSink {

@@ -2,37 +2,36 @@ use std::sync::Arc;
 
 use tower::Layer;
 
-use rate_limit::{
-    event_sink::EventSink, hierarchical_limiter::HierarchicalLimiter, models::RateLimitKey,
-};
+use crate::middleware::{RateLimitMiddleware, RateLimitPolicy};
 
-use crate::middleware::RateLimitMiddleware;
+// compile_error!("layer.rs is being compiled");
 
-#[derive(Clone)]
-pub struct RateLimitLayer<S>
-where
-    S: EventSink,
-{
-    limiter: Arc<HierarchicalLimiter<RateLimitKey, S>>,
+pub struct RateLimitLayer<L> {
+    limiter: Arc<L>,
 }
 
-impl<S> RateLimitLayer<S>
-where
-    S: EventSink,
-{
-    pub fn new(limiter: HierarchicalLimiter<RateLimitKey, S>) -> Self {
+// Manual Clone impl with **no bounds** on L.
+impl<L> Clone for RateLimitLayer<L> {
+    fn clone(&self) -> Self {
         Self {
-            limiter: Arc::new(limiter),
+            limiter: self.limiter.clone(),
         }
     }
 }
 
-impl<Svc, S> Layer<Svc> for RateLimitLayer<S>
+impl<L> RateLimitLayer<L> {
+    /// Take an `Arc<L>` so the caller controls sharing explicitly.
+    pub fn new(limiter: Arc<L>) -> Self {
+        Self { limiter }
+    }
+}
+
+impl<Svc, L> Layer<Svc> for RateLimitLayer<L>
 where
     Svc: Clone,
-    S: EventSink,
+    L: RateLimitPolicy + Send + Sync + 'static,
 {
-    type Service = RateLimitMiddleware<Svc, S>;
+    type Service = RateLimitMiddleware<Svc, L>;
 
     fn layer(&self, inner: Svc) -> Self::Service {
         RateLimitMiddleware {

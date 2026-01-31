@@ -1171,6 +1171,8 @@ dependencies = [
 name = "rate_limit_distributed"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "axum",
  "rate_limit",
  "state_backend",
  "tokio",
@@ -1258,6 +1260,8 @@ dependencies = [
  "futures",
  "hyper",
  "rate_limit",
+ "rate_limit_distributed",
+ "state_backend",
  "tokio",
  "tower",
 ]

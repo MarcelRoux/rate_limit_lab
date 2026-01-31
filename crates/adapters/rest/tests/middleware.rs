@@ -35,7 +35,7 @@ async fn rest_middleware_denies_request() {
 
     let app: Router = Router::new()
         .route("/", get(|| async { "ok" }))
-        .layer(RateLimitLayer::new(limiter));
+        .layer(RateLimitLayer::new(Arc::new(limiter)));
 
     let response = app
         .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
@@ -64,7 +64,7 @@ async fn rest_middleware_allows_request() {
 
     let app: Router = Router::new()
         .route("/", get(|| async { "ok" }))
-        .layer(RateLimitLayer::new(limiter));
+        .layer(RateLimitLayer::new(Arc::new(limiter)));
 
     let response = app
         .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
