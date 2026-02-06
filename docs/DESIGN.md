@@ -149,7 +149,7 @@ flowchart TB
   - `cargo clippy` enforces idiomatic rust
   - `typos` checks spelling
 
-- ** M0.3 - Installation**
+- **M0.3 - Installation**
   - script to install all git hooks
 
 **Outcome:** All contributors have consistent environment setup for ensuring improved code quality.
