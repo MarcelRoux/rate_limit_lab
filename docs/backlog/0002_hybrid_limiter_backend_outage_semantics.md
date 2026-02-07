@@ -2,7 +2,7 @@
 
 Status: Proposed
 Priority: P1
-Milestone: M3.2
+Milestone: M3.x
 Owner: <optional>
 Created: 2026-02-06
 Links:
