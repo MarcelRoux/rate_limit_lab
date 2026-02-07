@@ -3,7 +3,7 @@
 Status: Proposed
 Priority: P1
 Milestone: M3.x
-Owner: <optional>
+Owner: TBD
 Created: 2026-02-06
 Links:
 - Related: crates/state_backend, distributed limiter experiments (M3.1+)

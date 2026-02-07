@@ -3,7 +3,7 @@
 Status: Proposed
 Priority: P1
 Milestone: M3.x
-Owner: <optional>
+Owner: TBD
 Created: 2026-02-06
 Links:
 - ADR: docs/adr/ADR-xxxx-hybrid-limiter-backend-failure-semantics.md
