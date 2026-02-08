@@ -1,0 +1,9 @@
+bind_address = "127.0.0.1:3000"
+key_header = "x-api-key"
+anonymous_key = "anonymous"
+key_mode = "header_or_anonymous"
+instrumentation = "off"
+
+[limits]
+global_per_second = 1000
+per_key_per_second = 1000
