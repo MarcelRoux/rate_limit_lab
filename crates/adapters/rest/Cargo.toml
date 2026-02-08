@@ -26,7 +26,7 @@ tokio = { version = "=1.49.0", features = ["full"] }
 tower = { version = "=0.5.3" }
 
 [features]
-default = ["distributed_limiter"]
+default = ["in_memory_limiter"]
 in_memory_limiter = []
 distributed_limiter = []
 hybrid_limiter = []

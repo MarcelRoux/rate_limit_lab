@@ -15,9 +15,12 @@ use rate_limit::{
 async fn get_limiter(cfg: &RestServerConfig) -> HierarchicalLimiter<RateLimitKey, NoopEventSink> {
     log::info!("Configuring in-memory hierarchical limiter.");
     let sink = NoopEventSink;
-    let global_limit = RateLimit::per_second(cfg.limits.global_per_second)
+    let limits = cfg
+        .require_limits()
+        .expect("in_memory_limiter requires [limits] in the config");
+    let global_limit = RateLimit::per_second(limits.global_per_second)
         .expect("global_per_second must be non-zero");
-    let per_key_limit = RateLimit::per_second(cfg.limits.per_key_per_second)
+    let per_key_limit = RateLimit::per_second(limits.per_key_per_second)
         .expect("per_key_per_second must be non-zero");
 
     hierarchical_limiter(
@@ -67,6 +70,8 @@ async fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let cfg = RestServerConfig::load();
+    cfg.validate_for_enabled_feature()
+        .unwrap_or_else(|err| panic!("invalid REST server config: {err}"));
     log::info!("Loaded REST server config: {cfg:?}");
 
     let limiter = Arc::new(get_limiter(&cfg).await);

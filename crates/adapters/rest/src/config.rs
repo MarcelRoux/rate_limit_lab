@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fmt, fs,
     net::SocketAddr,
     path::{Path, PathBuf},
     time::Duration,
@@ -88,6 +88,27 @@ pub struct DistributedConfig {
     pub max: u32,
 }
 
+#[derive(Debug)]
+pub enum ConfigError {
+    MissingInMemoryLimits,
+    InvalidLimitValue { name: &'static str, value: u32 },
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConfigError::MissingInMemoryLimits => {
+                write!(f, "missing [limits] configuration for in_memory_limiter")
+            }
+            ConfigError::InvalidLimitValue { name, value } => {
+                write!(f, "limit `{}` must be non-zero (found {})", name, value)
+            }
+        }
+    }
+}
+
+impl std::error::Error for ConfigError {}
+
 impl Default for RestServerConfig {
     fn default() -> Self {
         Self {
@@ -151,5 +172,37 @@ impl RestServerConfig {
             return None;
         };
         Some(Duration::from_millis(d.window_ms))
+    }
+
+    pub fn require_limits(&self) -> Result<&LimitsConfig, ConfigError> {
+        self.limits
+            .as_ref()
+            .ok_or(ConfigError::MissingInMemoryLimits)
+    }
+
+    pub fn validate_for_enabled_feature(&self) -> Result<(), ConfigError> {
+        #[cfg(feature = "in_memory_limiter")]
+        {
+            self.validate_inmemory_limits()?;
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "in_memory_limiter")]
+    fn validate_inmemory_limits(&self) -> Result<(), ConfigError> {
+        let limits = self.require_limits()?;
+        if limits.global_per_second == 0 {
+            return Err(ConfigError::InvalidLimitValue {
+                name: "global_per_second",
+                value: limits.global_per_second,
+            });
+        }
+        if limits.per_key_per_second == 0 {
+            return Err(ConfigError::InvalidLimitValue {
+                name: "per_key_per_second",
+                value: limits.per_key_per_second,
+            });
+        }
+        Ok(())
     }
 }
