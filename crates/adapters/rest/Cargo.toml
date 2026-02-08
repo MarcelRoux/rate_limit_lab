@@ -2,6 +2,7 @@
 name = "rest"
 version = "0.1.0"
 edition = "2024"
+build = "src/build.rs"
 
 [dependencies]
 rate_limit = { path = "../../rate_limit" }
@@ -11,10 +12,21 @@ axum = { version = "=0.8.8" }
 futures = { version = "=0.3.31" }
 tokio = { version = "=1.49.0", features = ["full"] }
 tower = { version = "=0.5.3" }
+log = { version = "=0.4.29", features = ["kv"] }
+env_logger = { version = "=0.11.8" }
+serde = { version = "=1.0.228", features = ["derive"] }
+toml = { version = "=0.9.11" }
+clap = { version = "=4.5.57", features = ["derive"] }
 
 [dev-dependencies]
 rate_limit = { path = "../../rate_limit" }
-axum = { version = "=0.8.8"}
-hyper = { version = "=1.8.1"}
+axum = { version = "=0.8.8" }
+hyper = { version = "=1.8.1" }
 tokio = { version = "=1.49.0", features = ["full"] }
-tower = { version = "=0.5.3"}
+tower = { version = "=0.5.3" }
+
+[features]
+default = ["distributed_limiter"]
+in_memory_limiter = []
+distributed_limiter = []
+hybrid_limiter = []
