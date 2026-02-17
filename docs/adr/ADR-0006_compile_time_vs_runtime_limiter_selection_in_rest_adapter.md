@@ -9,11 +9,13 @@ Accepted
 ## Context
 
 The project integrates multiple rate-limiter implementations:
+
 - in-memory
 - distributed (Redis/Valkey)
 - hybrid (local + distributed)
 
 Early iterations used multiple Axum binaries, leading to:
+
 - duplicated wiring
 - configuration drift
 - poor experiment ergonomics
@@ -21,6 +23,7 @@ Early iterations used multiple Axum binaries, leading to:
 A single configurable REST server was adopted.
 
 However, Rust’s type system enforces that:
+
 - static dispatch decisions are made at compile time
 - runtime selection requires type erasure or branching
 
@@ -34,9 +37,9 @@ This ADR formalizes how the REST adapter resolves this tension.
 
 Limiter *families* are selected using Cargo features:
 
-- `inmemory`
-- `distributed`
-- `hybrid`
+- `in_memory_limiter`
+- `distributed_limiter`
+- `hybrid_limiter`
 
 This preserves static dispatch and avoids vtables on the hot path.
 
@@ -45,6 +48,7 @@ This preserves static dispatch and avoids vtables on the hot path.
 ### 2. Runtime Configuration Is Used for Parameters Only
 
 Runtime config controls:
+
 - quotas
 - namespaces
 - headers
@@ -76,6 +80,7 @@ Runtime config does **not** select limiter *types*.
 ### Runtime Env-Based Type Selection
 
 Rejected:
+
 - impossible to preserve static dispatch
 - misleading design
 - hides performance costs
@@ -83,6 +88,7 @@ Rejected:
 ### Multiple Server Binaries
 
 Rejected:
+
 - scaling complexity
 - maintenance overhead
 - weak architectural signal
@@ -90,6 +96,7 @@ Rejected:
 ### Wrapper Binary Executing Other Binaries
 
 Rejected:
+
 - operational indirection
 - decreased debuggability
 - unnecessary abstraction
@@ -108,6 +115,7 @@ Rejected:
 ## Review Trigger
 
 Revisit this ADR if:
+
 - hybrid limiter semantics stabilize
 - adapter overhead dominates benchmarks
 - protocol adapters expand beyond REST
@@ -117,6 +125,7 @@ Revisit this ADR if:
 ## Outcome
 
 This decision balances:
+
 - Rust’s type system constraints
 - performance correctness
 - experimental velocity

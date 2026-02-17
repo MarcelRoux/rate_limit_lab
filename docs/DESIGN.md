@@ -196,6 +196,7 @@ flowchart TB
 - **M3.2 – Hybrid Local + Global**
 - **M3.3 – Failure Injection**
 - **M3.4 – Distributed Metrics Validation**
+- **M3.5 – Hybrid Consolidation (Lease + Refresh + Degraded Modes)**
 
 **Outcome:** Measured latency, availability, and correctness under failure.
 
