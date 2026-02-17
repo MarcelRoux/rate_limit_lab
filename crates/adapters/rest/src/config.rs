@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "rest_client",
+    name = "rest_server",
     version,
     about = "REST server for rate limiting experiments."
 )]
@@ -52,6 +52,10 @@ pub struct RestServerConfig {
     /// Limits used by the distributed limiter variant.
     #[serde(default)]
     pub distributed: Option<DistributedConfig>,
+
+    /// Hybrid limiter options.
+    #[serde(default)]
+    pub hybrid: Option<HybridConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -88,9 +92,23 @@ pub struct DistributedConfig {
     pub max: u32,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct HybridConfig {
+    #[serde(default)]
+    pub failure_policy: Option<HybridFailurePolicyMode>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HybridFailurePolicyMode {
+    FailOpen,
+    FailClosed,
+}
+
 #[derive(Debug)]
 pub enum ConfigError {
     MissingInMemoryLimits,
+    MissingDistributedConfig,
     InvalidLimitValue { name: &'static str, value: u32 },
 }
 
@@ -99,6 +117,9 @@ impl fmt::Display for ConfigError {
         match self {
             ConfigError::MissingInMemoryLimits => {
                 write!(f, "missing [limits] configuration for in_memory_limiter")
+            }
+            ConfigError::MissingDistributedConfig => {
+                write!(f, "missing [distributed] configuration for this limiter")
             }
             ConfigError::InvalidLimitValue { name, value } => {
                 write!(f, "limit `{}` must be non-zero (found {})", name, value)
@@ -122,6 +143,7 @@ impl Default for RestServerConfig {
                 per_key_per_second: 1_000,
             }),
             distributed: None,
+            hybrid: None,
         }
     }
 }
@@ -180,15 +202,30 @@ impl RestServerConfig {
             .ok_or(ConfigError::MissingInMemoryLimits)
     }
 
+    pub fn require_distributed(&self) -> Result<&DistributedConfig, ConfigError> {
+        self.distributed
+            .as_ref()
+            .ok_or(ConfigError::MissingDistributedConfig)
+    }
+
     pub fn validate_for_enabled_feature(&self) -> Result<(), ConfigError> {
         #[cfg(feature = "in_memory_limiter")]
         {
             self.validate_inmemory_limits()?;
         }
+        #[cfg(feature = "distributed_limiter")]
+        {
+            self.validate_distributed_limits()?;
+        }
+        #[cfg(feature = "hybrid_limiter")]
+        {
+            self.validate_inmemory_limits()?;
+            self.validate_distributed_limits()?;
+        }
         Ok(())
     }
 
-    #[cfg(feature = "in_memory_limiter")]
+    #[cfg(any(feature = "in_memory_limiter", feature = "hybrid_limiter"))]
     fn validate_inmemory_limits(&self) -> Result<(), ConfigError> {
         let limits = self.require_limits()?;
         if limits.global_per_second == 0 {
@@ -201,6 +238,24 @@ impl RestServerConfig {
             return Err(ConfigError::InvalidLimitValue {
                 name: "per_key_per_second",
                 value: limits.per_key_per_second,
+            });
+        }
+        Ok(())
+    }
+
+    #[cfg(any(feature = "distributed_limiter", feature = "hybrid_limiter"))]
+    fn validate_distributed_limits(&self) -> Result<(), ConfigError> {
+        let distributed = self.require_distributed()?;
+        if distributed.window_ms == 0 {
+            return Err(ConfigError::InvalidLimitValue {
+                name: "distributed.window_ms",
+                value: 0,
+            });
+        }
+        if distributed.max == 0 {
+            return Err(ConfigError::InvalidLimitValue {
+                name: "distributed.max",
+                value: distributed.max,
             });
         }
         Ok(())

@@ -5,5 +5,5 @@ key_mode = "header_or_anonymous"
 instrumentation = "off"
 
 [limits]
-global_per_second = 1000
-per_key_per_second = 1000
+global_per_second = 1_000
+per_key_per_second = 1_000

@@ -4,7 +4,11 @@ use axum::{Router, routing::get};
 use tokio::signal;
 
 use rate_limit::{event_sink::NoopEventSink, models::RateLimitKey};
+#[cfg(feature = "hybrid_limiter")]
+use rate_limit_hybrid::{DistributedFailurePolicy, HybridLimiter, HybridLimiterConfig};
 
+#[cfg(feature = "hybrid_limiter")]
+use rest::config::HybridFailurePolicyMode;
 use rest::{config::RestServerConfig, layer::RateLimitLayer};
 
 #[cfg(feature = "in_memory_limiter")]
@@ -45,25 +49,83 @@ async fn get_limiter(
     let sink = NoopEventSink;
     let backend = RedisBackend::connect_from_env().await.expect("redis");
 
-    let (namespace, window_ms, max) = cfg
-        .distributed
-        .as_ref()
-        .map(|d| (d.namespace.as_str(), d.window_ms, d.max))
-        .unwrap_or(("rest", 1_000, 1_000));
+    let distributed = cfg.require_distributed().expect(
+        "distributed_limiter requires [distributed] with namespace/window_ms/max in config",
+    );
 
     DistributedKeyedLimiter::new(
         Arc::new(backend),
-        namespace,
+        distributed.namespace.as_str(),
         LimitSpec {
-            window: Duration::from_millis(window_ms),
-            max,
+            window: Duration::from_millis(distributed.window_ms),
+            max: distributed.max,
         },
         sink,
         cfg.instrumentation_level(),
     )
 }
+
 #[cfg(feature = "hybrid_limiter")]
-compile_error!("'hybrid_limiter' feature not yet implemented.");
+use {
+    rate_limit::{
+        factory::hierarchical_limiter, hierarchical_limiter::HierarchicalLimiter, models::RateLimit,
+    },
+    rate_limit_distributed::DistributedKeyedLimiter,
+    rate_limit_hybrid::HybridLimiter,
+    state_backend::{LimitSpec, RedisBackend},
+    std::time::Duration,
+};
+#[cfg(feature = "hybrid_limiter")]
+async fn get_limiter(
+    cfg: &RestServerConfig,
+) -> HybridLimiter<
+    HierarchicalLimiter<RateLimitKey, NoopEventSink>,
+    DistributedKeyedLimiter<RateLimitKey, state_backend::RedisBackend, NoopEventSink>,
+    RateLimitKey,
+    NoopEventSink,
+> {
+    log::info!("Configuring hybrid limiter.");
+
+    let limits = cfg
+        .require_limits()
+        .expect("hybrid_limiter requires [limits] in the config");
+    let global_limit = RateLimit::per_second(limits.global_per_second)
+        .expect("global_per_second must be non-zero");
+    let per_key_limit = RateLimit::per_second(limits.per_key_per_second)
+        .expect("per_key_per_second must be non-zero");
+    let local = hierarchical_limiter(
+        global_limit.to_quota(),
+        per_key_limit.to_quota(),
+        NoopEventSink,
+        cfg.instrumentation_level(),
+    );
+
+    let distributed_cfg = cfg
+        .require_distributed()
+        .expect("hybrid_limiter requires [distributed] in the config");
+    let backend = RedisBackend::connect_from_env().await.expect("redis");
+    let distributed = DistributedKeyedLimiter::new(
+        Arc::new(backend),
+        distributed_cfg.namespace.as_str(),
+        LimitSpec {
+            window: Duration::from_millis(distributed_cfg.window_ms),
+            max: distributed_cfg.max,
+        },
+        NoopEventSink,
+        cfg.instrumentation_level(),
+    );
+
+    let policy = match cfg.hybrid.as_ref().and_then(|h| h.failure_policy) {
+        Some(HybridFailurePolicyMode::FailClosed) => DistributedFailurePolicy::FailClosed,
+        _ => DistributedFailurePolicy::FailOpen,
+    };
+
+    HybridLimiter::new(
+        HybridLimiterConfig::new(local, distributed, NoopEventSink)
+            .with_instrumentation(cfg.instrumentation_level())
+            .with_failure_policy(policy),
+    )
+}
 
 #[tokio::main]
 async fn main() {

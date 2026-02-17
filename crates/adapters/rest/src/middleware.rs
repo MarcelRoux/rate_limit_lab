@@ -16,6 +16,7 @@ use rate_limit::event_sink::EventSink;
 use rate_limit::hierarchical_limiter::HierarchicalLimiter;
 use rate_limit::models::{Decision, RateLimitKey};
 use rate_limit_distributed::DistributedKeyedLimiter;
+use rate_limit_hybrid::{DistributedLimiter, HybridLimiter, LocalLimiter};
 use state_backend::StateBackend;
 
 // compile_error!("middleware.rs is being compiled");
@@ -77,6 +78,26 @@ where
         // to internalize this allocation and/or allow K = Cow<'a, str>.
         let k = key.to_owned();
         Box::pin(async move { self.check_str(&k).await })
+    }
+}
+
+// -----------------------------
+// Hybrid limiter
+// -----------------------------
+impl<L, D, S> RateLimitPolicy for HybridLimiter<L, D, RateLimitKey, S>
+where
+    L: LocalLimiter<RateLimitKey> + Send + Sync + 'static,
+    D: DistributedLimiter<RateLimitKey> + Send + Sync + 'static,
+    S: EventSink + Send + Sync + 'static,
+{
+    type Fut<'a>
+        = Pin<Box<dyn Future<Output = Decision> + Send + 'a>>
+    where
+        Self: 'a;
+
+    fn check<'a>(&'a self, key: &'a str) -> Self::Fut<'a> {
+        let key = RateLimitKey(key.to_owned());
+        Box::pin(async move { self.check(&key).await })
     }
 }
 
