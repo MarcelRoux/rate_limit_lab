@@ -6,7 +6,14 @@ use rate_limit::{
 };
 use state_backend::{BackendDecision, LimitSpec, StateBackend};
 
-const BACKEND_ERROR_RETRY_AFTER: Duration = Duration::from_millis(50);
+pub const BACKEND_ERROR_RETRY_AFTER: Duration = Duration::from_millis(50);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DistributedCheckOutcome {
+    Allow,
+    Deny { retry_after: Duration },
+    BackendError { retry_after: Duration },
+}
 
 /// Distributed keyed rate limiter backed by a state backend.
 ///
@@ -94,23 +101,8 @@ where
 
     pub async fn check(&self, key: &K) -> Decision {
         let operation = Operation::RateLimitCheck;
-
-        let backend_result = self
-            .backend
-            .check(&self.namespace, key.as_ref(), self.limit)
-            .await;
-
-        let decision = match backend_result {
-            Ok(BackendDecision::Allow) => Decision::Allow,
-            Ok(BackendDecision::Deny { retry_after }) => Decision::Deny { retry_after },
-            Err(_) => {
-                // M3.1 policy placeholder:
-                // failure policy (fail-open vs fail-closed) is explored in M3.3.
-                Decision::Deny {
-                    retry_after: BACKEND_ERROR_RETRY_AFTER,
-                }
-            }
-        };
+        let outcome = self.check_outcome(key).await;
+        let decision = map_outcome_to_default_decision(&outcome);
 
         if self.instrumentation != InstrumentationLevel::Off {
             self.sink.emit(Event::OperationCompleted {
@@ -124,16 +116,8 @@ where
 
     pub async fn check_str(&self, key: &str) -> Decision {
         let operation = Operation::RateLimitCheck;
-
-        let backend_result = self.backend.check(&self.namespace, key, self.limit).await;
-
-        let decision = match backend_result {
-            Ok(BackendDecision::Allow) => Decision::Allow,
-            Ok(BackendDecision::Deny { retry_after }) => Decision::Deny { retry_after },
-            Err(_) => Decision::Deny {
-                retry_after: BACKEND_ERROR_RETRY_AFTER,
-            },
-        };
+        let outcome = self.check_str_outcome(key).await;
+        let decision = map_outcome_to_default_decision(&outcome);
 
         if self.instrumentation != InstrumentationLevel::Off {
             self.sink.emit(Event::OperationCompleted {
@@ -143,5 +127,33 @@ where
         }
 
         decision
+    }
+
+    pub async fn check_outcome(&self, key: &K) -> DistributedCheckOutcome {
+        self.check_str_outcome(key.as_ref()).await
+    }
+
+    pub async fn check_str_outcome(&self, key: &str) -> DistributedCheckOutcome {
+        let backend_result = self.backend.check(&self.namespace, key, self.limit).await;
+
+        match backend_result {
+            Ok(BackendDecision::Allow) => DistributedCheckOutcome::Allow,
+            Ok(BackendDecision::Deny { retry_after }) => {
+                DistributedCheckOutcome::Deny { retry_after }
+            }
+            Err(_) => DistributedCheckOutcome::BackendError {
+                retry_after: BACKEND_ERROR_RETRY_AFTER,
+            },
+        }
+    }
+}
+
+fn map_outcome_to_default_decision(outcome: &DistributedCheckOutcome) -> Decision {
+    match outcome {
+        DistributedCheckOutcome::Allow => Decision::Allow,
+        DistributedCheckOutcome::Deny { retry_after }
+        | DistributedCheckOutcome::BackendError { retry_after } => Decision::Deny {
+            retry_after: *retry_after,
+        },
     }
 }
