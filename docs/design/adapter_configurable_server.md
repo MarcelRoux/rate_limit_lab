@@ -20,6 +20,7 @@ Axum imposes strict trait bounds on middleware layers:
 Core limiter implementations (in-memory, distributed, hybrid) intentionally include non-Clone components (e.g. `governor::RateLimiter`), making naïve generic middleware definitions fail to compile.
 
 Earlier attempts to keep everything statically dispatched resulted in:
+
 - confusing trait bound failures
 - misleading `Clone` errors on otherwise valid types
 - disproportionate debugging time relative to feature scope
@@ -52,6 +53,7 @@ Earlier attempts to keep everything statically dispatched resulted in:
 Limiter *families* are selected at **build time** using Cargo features.
 
 Example:
+
 - `--features inmem`
 - `--features distributed`
 - `--features hybrid`
@@ -76,6 +78,7 @@ Each build produces a fully statically-dispatched middleware stack.
 - Requires rebuilding to switch limiter families
 
 This is the preferred model for:
+
 - performance evaluation
 - production-like benchmarking
 - correctness-sensitive measurements
@@ -115,10 +118,12 @@ This expresses the *minimal correct requirement*.
 3. Possible heap allocation if policy returns boxed futures
 
 In REST workloads:
+
 - HTTP overhead dominates
 - dynamic dispatch cost is measurable but not dominant
 
 In hot-path benchmarking:
+
 - static dispatch is preferred and supported via features
 
 ---
@@ -126,6 +131,7 @@ In hot-path benchmarking:
 ## What Environment Variables Cannot Do
 
 Environment variables cannot influence:
+
 - monomorphization
 - generic specialization
 - static vs dynamic dispatch

@@ -1,6 +1,7 @@
 # ADR-0005: Single Configurable REST Server Binary
 
 ## Status
+
 Superseded by ADR-0006
 
 ## Context
@@ -27,6 +28,7 @@ Limiter implementations (in-memory, distributed, hybrid) are selected using a co
 ## Consequences
 
 ### Positive
+
 - No recompilation when adding limiter variants
 - Cleaner experimentation workflow
 - Adapter boundary clearly defined
@@ -34,6 +36,7 @@ Limiter implementations (in-memory, distributed, hybrid) are selected using a co
 - Extensible to future backends and protocols
 
 ### Negative
+
 - Requires dynamic dispatch at the adapter boundary
 - Slight complexity increase in config parsing
 - Must document configuration carefully
@@ -45,13 +48,17 @@ These tradeoffs are acceptable given the scope and performance characteristics o
 ## Alternatives Considered
 
 ### Multiple Server Binaries
+
 Rejected due to:
+
 - combinatorial explosion
 - maintenance overhead
 - poor scaling of experiments
 
 ### Wrapper Binary Executing Other Binaries
+
 Rejected due to:
+
 - increased operational complexity
 - weaker architectural clarity
 - unnecessary indirection
@@ -78,9 +85,9 @@ This ADR enables future milestones (M3.2+) without revisiting server wiring.
 ## Review Trigger
 
 Revisit this decision if:
+
 - adapter overhead becomes dominant in benchmarks
 - static dispatch can be restored cleanly
 - protocol adapters expand beyond REST
-
 
 ---
