@@ -4,5 +4,6 @@ members = [
     "crates/rate_limit",
     "crates/rate_limit_distributed",
     "crates/state_backend",
-    "crates/traffic_rest"]
+    "crates/traffic_rest",
+    "crates/rate_limit_hybrid"]
 resolver = "3"

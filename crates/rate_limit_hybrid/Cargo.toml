@@ -1,0 +1,11 @@
+[package]
+name = "rate_limit_hybrid"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rate_limit = { path = "../rate_limit" }
+rate_limit_distributed = { path = "../rate_limit_distributed" }
+state_backend = { path = "../state_backend" }
+futures = { version = "=0.3.31", features = ["std"] }
+tokio = { version = "=1.49.0", features = ["rt-multi-thread", "sync", "time"] }
