@@ -6,7 +6,7 @@ pub struct TrafficProfile {
     pub duration: Duration,
     pub requests_per_second: u64,
     pub concurrency: usize,
-    /// Header name expected by your M2.3 adapter (e.g., "x-api-key").
+    /// Header name expected by M2.3 adapter.
     pub key_header: String,
 }
 

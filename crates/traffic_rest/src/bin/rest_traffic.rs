@@ -1,31 +1,30 @@
-use std::time::Duration;
+use std::path::PathBuf;
+
+use clap::Parser;
 
 use traffic_rest::metrics::summarize;
-use traffic_rest::{KeyMode, TrafficProfile, run_profile};
+use traffic_rest::{TrafficRunConfig, run_profile};
+
+#[derive(Debug, Parser)]
+#[command(
+    name = "rest_traffic",
+    version,
+    about = "Configurable REST traffic generator for rate limiting experiments."
+)]
+struct Args {
+    /// Optional path to a TOML config file.
+    #[arg(long)]
+    config: Option<PathBuf>,
+}
 
 #[tokio::main]
 async fn main() {
-    // Assumes your M2.3 Axum app is running locally and rate-limiting "/" route.
-    // Adjust the URL to match your server.
-    let profile = TrafficProfile {
-        target_url: "http://127.0.0.1:3000/".to_string(),
-        duration: Duration::from_secs(5),
-        requests_per_second: 60_000,
-        concurrency: 16,
-        key_header: "x-api-key".to_string(),
-    };
-
-    // Try these modes:
-    // - KeyMode::Keyless
-    // - KeyMode::SingleKey("user1".into())
-    // - KeyMode::RoundRobin(vec!["u1".into(), "u2".into(), "u3".into()])
-    // let key_mode = KeyMode::RoundRobin(vec![
-    //     "user1".into(),
-    //     "user2".into(),
-    //     "user3".into(),
-    //     "user4".into(),
-    // ]);
-    let key_mode = KeyMode::SingleKey("user1".into());
+    let args = Args::parse();
+    let run_config = TrafficRunConfig::load(args.config.as_deref())
+        .unwrap_or_else(|err| panic!("invalid traffic config: {err}"));
+    let (profile, key_mode) = run_config
+        .to_profile_and_mode()
+        .unwrap_or_else(|err| panic!("invalid traffic config: {err}"));
 
     println!("REST traffic run config:");
     println!("  target_url: {}", profile.target_url);
