@@ -24,6 +24,9 @@ help:
 	@echo "Testing:"
 	@echo "  make test-all-targets     Run all integration tests - no features"
 	@echo "  make test-redis-backend   Run state_backend Redis integration tests"
+	@echo "  make ac                   Run acceptance smoke profile (Rust harness)"
+	@echo "  make ac-full              Run acceptance full implemented profile (Rust harness)"
+	@echo "  make ac-one AT=AT-00X     Run a single acceptance test id (Rust harness)"
 	@echo ""
 	@echo "Environment:"
 	@echo "  make env                Show environment variables"
@@ -81,4 +84,38 @@ env-init:
 		echo "Created docker/env/dev.env from sample"; \
 	else \
 		echo "docker/env/dev.env already exists"; \
+	fi
+
+.PHONY: ac
+ac:
+	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
+		cargo run -p eval_harness -- run --profile smoke_ready; \
+	else \
+		echo "eval_harness crate is not implemented yet."; \
+		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
+		exit 2; \
+	fi
+
+.PHONY: ac-full
+ac-full:
+	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
+		cargo run -p eval_harness -- run --profile full_matrix; \
+	else \
+		echo "eval_harness crate is not implemented yet."; \
+		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
+		exit 2; \
+	fi
+
+.PHONY: ac-one
+ac-one:
+	@if [ -z "$(AT)" ]; then \
+		echo "Missing AT id. Usage: make ac-one AT=AT-00X"; \
+		exit 2; \
+	fi
+	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
+		cargo run -p eval_harness -- run --at "$(AT)"; \
+	else \
+		echo "eval_harness crate is not implemented yet."; \
+		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
+		exit 2; \
 	fi
