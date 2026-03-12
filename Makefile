@@ -88,34 +88,12 @@ env-init:
 
 .PHONY: ac
 ac:
-	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
-		cargo run -p eval_harness -- run --profile smoke_ready; \
-	else \
-		echo "eval_harness crate is not implemented yet."; \
-		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
-		exit 2; \
-	fi
+	./scripts/eval/run.sh smoke
 
 .PHONY: ac-full
 ac-full:
-	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
-		cargo run -p eval_harness -- run --profile full_matrix; \
-	else \
-		echo "eval_harness crate is not implemented yet."; \
-		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
-		exit 2; \
-	fi
+	./scripts/eval/run.sh full
 
 .PHONY: ac-one
 ac-one:
-	@if [ -z "$(AT)" ]; then \
-		echo "Missing AT id. Usage: make ac-one AT=AT-00X"; \
-		exit 2; \
-	fi
-	@if cargo metadata --no-deps --format-version 1 | rg -q '"name":"eval_harness"'; then \
-		cargo run -p eval_harness -- run --at "$(AT)"; \
-	else \
-		echo "eval_harness crate is not implemented yet."; \
-		echo "See docs/evaluation/shortcomings_and_remediation.md (Phase 1 / H-001..H-008)."; \
-		exit 2; \
-	fi
+	./scripts/eval/run.sh one "$(AT)"
