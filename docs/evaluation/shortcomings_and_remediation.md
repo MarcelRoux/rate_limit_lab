@@ -94,7 +94,7 @@ Objective: compile multiple run reports into project-level report bundles.
 Concrete tasks:
 
 1. Add Rust compile command:
-   - `cargo run -p eval_harness -- compile --input runs --output reports`
+   - `cargo run -p eval_harness -- compile --input evaluations/runs --output evaluations/reports`
 2. Generate:
    - `evaluations/reports/compiled_<stamp>.md`
    - `evaluations/reports/compiled_<stamp>.json`
