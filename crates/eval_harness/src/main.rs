@@ -3,6 +3,7 @@ use std::{
     env, fs,
     hash::{Hash, Hasher},
     path::{Path, PathBuf},
+    process::Command as ProcessCommand,
 };
 
 use chrono::Utc;
@@ -133,6 +134,7 @@ struct Metrics {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TraceRecord {
+    at_id: Option<String>,
     trace_id: String,
     scenario_id: String,
     request_started_at: i64,
@@ -235,6 +237,14 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
 
     let selected_ats = select_ats(profile.clone(), at.clone());
     let redis_url_present = env::var("REDIS_URL").is_ok();
+    let distributed_requested = selected_ats
+        .iter()
+        .any(|id| id == "AT-016" || id == "AT-017");
+    let distributed_backend_ready = if distributed_requested {
+        Some(prepare_distributed_backend(redis_url_present))
+    } else {
+        None
+    };
     let environment = EnvironmentInfo { redis_url_present };
     let mode = if at.is_some() {
         "single_at".to_string()
@@ -263,6 +273,7 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
         &run_dir,
         &selected_ats,
         redis_url_present,
+        distributed_backend_ready.as_ref(),
     );
     write_json(run_dir.join("manifest.json"), &manifest)?;
     write_json(run_dir.join("preflight.json"), &preflight)?;
@@ -272,7 +283,7 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
 
     let mut at_results: Vec<AtResult> = Vec::new();
     for at_id in &selected_ats {
-        let result = execute_at(at_id, redis_url_present);
+        let result = execute_at(at_id, redis_url_present, distributed_backend_ready.as_ref());
         at_results.push(result);
     }
 
@@ -281,6 +292,7 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
         .map_err(|e| format!("write traces.jsonl: {e}"))?;
 
     let traces = read_traces(&run_dir.join("traces.jsonl"))?;
+    finalize_distributed_trace_checks(&mut at_results, &traces);
 
     let at_016_status = at_results
         .iter()
@@ -302,7 +314,8 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
     let metrics = score_metrics(&traces)?;
     let has_fail = at_results.iter().any(|r| r.status == "fail");
     let has_not_implemented = at_results.iter().any(|r| r.status == "not_implemented");
-    let status = if has_fail || has_not_implemented {
+    let has_repro_failure = !reproducibility.gate_passed;
+    let status = if has_fail || has_not_implemented || has_repro_failure {
         "fail"
     } else {
         "pass"
@@ -324,6 +337,9 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
     }
     if has_fail {
         triage_labels.push("EXECUTION_FAILURE");
+    }
+    if has_repro_failure {
+        triage_labels.push("NON_REPRODUCIBLE_RUN");
     }
     let triage = serde_json::json!({ "labels": triage_labels });
     write_json(run_dir.join("triage.json"), &triage)?;
@@ -416,6 +432,7 @@ fn build_preflight(
     run_dir: &Path,
     selected_ats: &[String],
     redis_url_present: bool,
+    distributed_backend_ready: Option<&BackendPreparation>,
 ) -> Preflight {
     let mut checks = Vec::new();
 
@@ -443,7 +460,7 @@ fn build_preflight(
         .any(|id| id == "AT-016" || id == "AT-017");
     checks.push(PreflightCheck {
         name: "redis_url_present_for_distributed".to_string(),
-        required: false,
+        required: distributed_requested,
         passed: !distributed_requested || redis_url_present,
         details: if distributed_requested {
             "AT-016/AT-017 selected; REDIS_URL required for full distributed execution".to_string()
@@ -451,19 +468,92 @@ fn build_preflight(
             "distributed ATs not selected".to_string()
         },
     });
+    if distributed_requested {
+        let (passed, details) = if let Some(prep) = distributed_backend_ready {
+            (prep.ready, prep.details.clone())
+        } else {
+            (
+                false,
+                "distributed backend preflight missing; this is a harness bug".to_string(),
+            )
+        };
+        checks.push(PreflightCheck {
+            name: "distributed_backend_ready".to_string(),
+            required: true,
+            passed,
+            details,
+        });
+    }
 
     let passed = checks.iter().filter(|c| c.required).all(|c| c.passed);
     Preflight { passed, checks }
 }
 
-fn execute_at(at_id: &str, redis_url_present: bool) -> AtResult {
-    if (at_id == "AT-016" || at_id == "AT-017") && !redis_url_present {
+fn execute_at(
+    at_id: &str,
+    redis_url_present: bool,
+    distributed_backend_ready: Option<&BackendPreparation>,
+) -> AtResult {
+    if at_id == "AT-016" {
+        if !redis_url_present {
+            return AtResult {
+                at_id: at_id.to_string(),
+                status: "fail".to_string(),
+                evidence: "REDIS_URL not set".to_string(),
+            };
+        }
+        if let Some(prep) = distributed_backend_ready {
+            return if prep.ready {
+                AtResult {
+                    at_id: at_id.to_string(),
+                    status: "pass".to_string(),
+                    evidence: "redis fixed-window backend probe passed".to_string(),
+                }
+            } else {
+                AtResult {
+                    at_id: at_id.to_string(),
+                    status: "fail".to_string(),
+                    evidence: format!("distributed backend not ready: {}", prep.details),
+                }
+            };
+        }
         return AtResult {
             at_id: at_id.to_string(),
-            status: "skipped".to_string(),
-            evidence: "REDIS_URL not set".to_string(),
+            status: "fail".to_string(),
+            evidence: "missing distributed backend readiness evidence".to_string(),
         };
     }
+
+    if at_id == "AT-017" {
+        if !redis_url_present {
+            return AtResult {
+                at_id: at_id.to_string(),
+                status: "fail".to_string(),
+                evidence: "REDIS_URL not set".to_string(),
+            };
+        }
+        if let Some(prep) = distributed_backend_ready {
+            return if prep.ready {
+                AtResult {
+                    at_id: at_id.to_string(),
+                    status: "pass".to_string(),
+                    evidence: "distributed trace evidence preconditions satisfied".to_string(),
+                }
+            } else {
+                AtResult {
+                    at_id: at_id.to_string(),
+                    status: "fail".to_string(),
+                    evidence: format!("distributed backend not ready: {}", prep.details),
+                }
+            };
+        }
+        return AtResult {
+            at_id: at_id.to_string(),
+            status: "fail".to_string(),
+            evidence: "missing distributed backend readiness evidence".to_string(),
+        };
+    }
+
     AtResult {
         at_id: at_id.to_string(),
         status: "not_implemented".to_string(),
@@ -483,6 +573,8 @@ fn build_traces(
             let backend_outcome = if result.at_id == "AT-016" || result.at_id == "AT-017" {
                 if result.status == "pass" {
                     "allow"
+                } else if result.status == "fail" {
+                    "error"
                 } else {
                     "none"
                 }
@@ -517,6 +609,7 @@ fn build_traces(
                 ),
             };
             let value = serde_json::json!({
+                "at_id": result.at_id,
                 "trace_id": format!("trace-{}-{}-{}", start_ts, attempt, idx),
                 "scenario_id": selector,
                 "request_started_at": start_ts + (attempt as i64),
@@ -548,6 +641,43 @@ fn read_traces(path: &Path) -> Result<Vec<TraceRecord>, String> {
         out.push(trace);
     }
     Ok(out)
+}
+
+fn finalize_distributed_trace_checks(at_results: &mut [AtResult], traces: &[TraceRecord]) {
+    let has_at_017 = at_results.iter().any(|r| r.at_id == "AT-017");
+    if !has_at_017 {
+        return;
+    }
+
+    let distributed = traces
+        .iter()
+        .filter(|t| t.at_id.as_deref() == Some("AT-016") || t.at_id.as_deref() == Some("AT-017"))
+        .collect::<Vec<_>>();
+
+    let status_and_evidence = if distributed.is_empty() {
+        (
+            "fail".to_string(),
+            "no distributed trace rows found for AT-016/AT-017".to_string(),
+        )
+    } else if distributed
+        .iter()
+        .all(|t| !t.backend_outcome.is_empty() && t.backend_outcome != "none")
+    {
+        (
+            "pass".to_string(),
+            "distributed traces include non-null backend_outcome".to_string(),
+        )
+    } else {
+        (
+            "fail".to_string(),
+            "distributed traces missing backend_outcome evidence".to_string(),
+        )
+    };
+
+    if let Some(at_017) = at_results.iter_mut().find(|r| r.at_id == "AT-017") {
+        at_017.status = status_and_evidence.0;
+        at_017.evidence = status_and_evidence.1;
+    }
 }
 
 fn score_metrics(traces: &[TraceRecord]) -> Result<Metrics, String> {
@@ -757,6 +887,91 @@ fn validate_trace_schema(path: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct BackendPreparation {
+    ready: bool,
+    details: String,
+}
+
+fn prepare_distributed_backend(redis_url_present: bool) -> BackendPreparation {
+    if !redis_url_present {
+        return BackendPreparation {
+            ready: false,
+            details: "REDIS_URL not set".to_string(),
+        };
+    }
+
+    let redis_up = run_process("make", &["redis-up"]);
+    if !redis_up.success {
+        return BackendPreparation {
+            ready: false,
+            details: format!("`make redis-up` failed: {}", redis_up.details),
+        };
+    }
+
+    let probe = run_process(
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "state_backend",
+            "--features",
+            "redis-tests",
+            "redis_backend_fixed_window_allows_then_denies",
+            "--",
+            "--exact",
+        ],
+    );
+    if !probe.success {
+        return BackendPreparation {
+            ready: false,
+            details: format!("redis backend probe failed: {}", probe.details),
+        };
+    }
+
+    BackendPreparation {
+        ready: true,
+        details: "redis backend ready via `make redis-up` and fixed-window probe".to_string(),
+    }
+}
+
+#[derive(Debug)]
+struct ProcessResult {
+    success: bool,
+    details: String,
+}
+
+fn run_process(program: &str, args: &[&str]) -> ProcessResult {
+    match ProcessCommand::new(program).args(args).output() {
+        Ok(output) => {
+            if output.status.success() {
+                ProcessResult {
+                    success: true,
+                    details: "ok".to_string(),
+                }
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let msg = if !stderr.trim().is_empty() {
+                    stderr.trim().to_string()
+                } else if !stdout.trim().is_empty() {
+                    stdout.trim().to_string()
+                } else {
+                    format!("exit status {}", output.status)
+                };
+                ProcessResult {
+                    success: false,
+                    details: msg,
+                }
+            }
+        }
+        Err(e) => ProcessResult {
+            success: false,
+            details: e.to_string(),
+        },
+    }
 }
 
 fn compute_config_hash(
