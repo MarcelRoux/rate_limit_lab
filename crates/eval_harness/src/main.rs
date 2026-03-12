@@ -114,13 +114,21 @@ struct Metrics {
     retry_after_accuracy: f64,
     http_mapping_accuracy: f64,
     key_isolation_error_rate: f64,
+    backend_error_policy_conformance: Option<f64>,
+    short_circuit_conformance: Option<f64>,
+    mode_transition_conformance: Option<f64>,
     throughput_rps_observed: f64,
     deny_ratio: f64,
     latency_ms_p50: f64,
     latency_ms_p95: f64,
     latency_ms_p99: f64,
     latency_regression_pct: f64,
+    per_key_allow_variance: Option<f64>,
+    per_key_deny_variance: Option<f64>,
+    global_target_drift_pct: Option<f64>,
     artifact_completeness_rate: f64,
+    one_command_success_rate: Option<f64>,
+    baseline_update_compliance_rate: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -290,7 +298,7 @@ fn run_command(profile: Option<String>, at: Option<String>, repeat: u32) -> Resu
         at_017_status,
     };
 
-    let reproducibility = score_reproducibility(repeat);
+    let reproducibility = score_reproducibility(repeat, &traces, at_results.len())?;
     let metrics = score_metrics(&traces)?;
     let has_fail = at_results.iter().any(|r| r.status == "fail");
     let has_not_implemented = at_results.iter().any(|r| r.status == "not_implemented");
@@ -599,13 +607,21 @@ fn score_metrics(traces: &[TraceRecord]) -> Result<Metrics, String> {
         retry_after_accuracy,
         http_mapping_accuracy: http_map_ok / total,
         key_isolation_error_rate: 0.0,
+        backend_error_policy_conformance: None,
+        short_circuit_conformance: None,
+        mode_transition_conformance: None,
         throughput_rps_observed,
         deny_ratio: deny_count / total,
         latency_ms_p50: percentile(&latencies, 0.50),
         latency_ms_p95: percentile(&latencies, 0.95),
         latency_ms_p99: percentile(&latencies, 0.99),
         latency_regression_pct: 0.0,
+        per_key_allow_variance: None,
+        per_key_deny_variance: None,
+        global_target_drift_pct: None,
         artifact_completeness_rate: 0.0,
+        one_command_success_rate: None,
+        baseline_update_compliance_rate: None,
     })
 }
 
@@ -624,20 +640,75 @@ fn compute_artifact_completeness(run_dir: &Path) -> f64 {
     present / required.len() as f64
 }
 
-fn score_reproducibility(repeat: u32) -> Reproducibility {
-    let decision_delta = 0.0;
-    let latency_delta = 0.0;
-    let gate_passed = if repeat >= 2 {
-        decision_delta <= 0.5 && latency_delta <= 15.0
-    } else {
-        true
-    };
-    Reproducibility {
-        repeat_runs: repeat,
-        repeat_run_decision_delta_pp: decision_delta,
-        repeat_run_latency_p95_delta_pct: latency_delta,
-        gate_passed,
+fn score_reproducibility(
+    repeat: u32,
+    traces: &[TraceRecord],
+    selected_at_count: usize,
+) -> Result<Reproducibility, String> {
+    if repeat < 2 {
+        return Ok(Reproducibility {
+            repeat_runs: repeat,
+            repeat_run_decision_delta_pp: 0.0,
+            repeat_run_latency_p95_delta_pct: 0.0,
+            gate_passed: true,
+        });
     }
+    if selected_at_count == 0 {
+        return Err("cannot score reproducibility: no selected ATs".to_string());
+    }
+
+    let expected_per_attempt = selected_at_count;
+    let expected_total = expected_per_attempt * repeat as usize;
+    if traces.len() != expected_total {
+        return Err(format!(
+            "cannot score reproducibility: expected {expected_total} traces for repeat={repeat} and selected_ats={selected_at_count}, found {}",
+            traces.len()
+        ));
+    }
+
+    let mut allow_ratios = Vec::with_capacity(repeat as usize);
+    let mut p95_values = Vec::with_capacity(repeat as usize);
+
+    for attempt in 0..repeat as usize {
+        let start = attempt * expected_per_attempt;
+        let end = start + expected_per_attempt;
+        let chunk = &traces[start..end];
+        let allow_count = chunk.iter().filter(|t| t.decision == "allow").count() as f64;
+        let ratio = allow_count / expected_per_attempt as f64;
+        allow_ratios.push(ratio);
+
+        let mut latencies = chunk
+            .iter()
+            .map(|t| t.latency_ms as f64)
+            .collect::<Vec<_>>();
+        latencies.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        p95_values.push(percentile(&latencies, 0.95));
+    }
+
+    let first_allow = allow_ratios[0];
+    let first_p95 = p95_values[0];
+    let mut max_allow_delta_pp = 0.0;
+    let mut max_latency_delta_pct = 0.0;
+
+    for idx in 1..allow_ratios.len() {
+        let delta_pp = (allow_ratios[idx] - first_allow).abs() * 100.0;
+        if delta_pp > max_allow_delta_pp {
+            max_allow_delta_pp = delta_pp;
+        }
+
+        let denom = if first_p95 > 0.0 { first_p95 } else { 1.0 };
+        let delta_pct = ((p95_values[idx] - first_p95).abs() / denom) * 100.0;
+        if delta_pct > max_latency_delta_pct {
+            max_latency_delta_pct = delta_pct;
+        }
+    }
+
+    Ok(Reproducibility {
+        repeat_runs: repeat,
+        repeat_run_decision_delta_pp: max_allow_delta_pp,
+        repeat_run_latency_p95_delta_pct: max_latency_delta_pct,
+        gate_passed: max_allow_delta_pp <= 0.5 && max_latency_delta_pct <= 15.0,
+    })
 }
 
 fn validate_required_artifacts(run_dir: &Path) -> Result<(), String> {
@@ -944,6 +1015,15 @@ fn parse_summary_for_compile(value: &serde_json::Value) -> CompileSummaryView {
             .and_then(|mm| mm.get("key_isolation_error_rate"))
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0),
+        backend_error_policy_conformance: m
+            .and_then(|mm| mm.get("backend_error_policy_conformance"))
+            .and_then(|v| v.as_f64()),
+        short_circuit_conformance: m
+            .and_then(|mm| mm.get("short_circuit_conformance"))
+            .and_then(|v| v.as_f64()),
+        mode_transition_conformance: m
+            .and_then(|mm| mm.get("mode_transition_conformance"))
+            .and_then(|v| v.as_f64()),
         throughput_rps_observed: m
             .and_then(|mm| mm.get("throughput_rps_observed"))
             .and_then(|v| v.as_f64())
@@ -968,10 +1048,25 @@ fn parse_summary_for_compile(value: &serde_json::Value) -> CompileSummaryView {
             .and_then(|mm| mm.get("latency_regression_pct"))
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0),
+        per_key_allow_variance: m
+            .and_then(|mm| mm.get("per_key_allow_variance"))
+            .and_then(|v| v.as_f64()),
+        per_key_deny_variance: m
+            .and_then(|mm| mm.get("per_key_deny_variance"))
+            .and_then(|v| v.as_f64()),
+        global_target_drift_pct: m
+            .and_then(|mm| mm.get("global_target_drift_pct"))
+            .and_then(|v| v.as_f64()),
         artifact_completeness_rate: m
             .and_then(|mm| mm.get("artifact_completeness_rate"))
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0),
+        one_command_success_rate: m
+            .and_then(|mm| mm.get("one_command_success_rate"))
+            .and_then(|v| v.as_f64()),
+        baseline_update_compliance_rate: m
+            .and_then(|mm| mm.get("baseline_update_compliance_rate"))
+            .and_then(|v| v.as_f64()),
     };
 
     CompileSummaryView {
