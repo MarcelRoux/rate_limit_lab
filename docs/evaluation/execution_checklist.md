@@ -18,9 +18,9 @@ Use this alongside:
 
 Last verified command-contract runs:
 
-- smoke: `evaluations/runs/20260312_233132_smoke_ready`
-- full: `evaluations/runs/20260312_234959_full_matrix`
-- one: `evaluations/runs/20260312_233132_AT-034`
+- smoke: `evaluations/runs/20260313_163756_smoke_ready`
+- full: `evaluations/runs/20260313_174452_full_matrix`
+- one: `evaluations/runs/20260313_163759_AT-004`
 
 ## Phase 1: Rust Harness Skeleton
 
@@ -93,9 +93,9 @@ Verification:
 
 ### 3.1 AT registry
 
-- [ ] Add internal AT registry with AT id -> executor mapping.
-- [ ] Add status metadata (`ready/planned/blocked`).
-- [ ] Block execution of non-ready ATs with explicit reason.
+- [x] Add internal AT registry with AT id -> executor mapping.
+- [x] Add status metadata (`ready/planned/blocked`).
+- [x] Block execution of non-ready ATs with explicit reason.
 
 Verification:
 
@@ -184,8 +184,8 @@ Verification:
 
 ### 6.1 Failure injection
 
-- [x] Implement deterministic `outage`, `latency`, and `flapping` controls.
-- [x] Wire ATs `AT-025` to `AT-029`.
+- [ ] Implement deterministic `outage`, `latency`, and `flapping` controls.
+- [ ] Wire ATs `AT-025` to `AT-029`.
 
 Verification:
 
@@ -193,8 +193,8 @@ Verification:
 
 ### 6.2 RR/SA profiles
 
-- [x] Add reusable RR and SA scenario profiles.
-- [x] Wire ATs `AT-030` to `AT-034`.
+- [ ] Add reusable RR and SA scenario profiles.
+- [ ] Wire ATs `AT-030` to `AT-034`.
 
 Verification:
 
