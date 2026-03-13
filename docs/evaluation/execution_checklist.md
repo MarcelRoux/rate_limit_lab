@@ -16,13 +16,19 @@ Use this alongside:
 - Every run emits required artifacts.
 - Reports include key metrics and evidence links.
 
+Last verified command-contract runs:
+
+- smoke: `evaluations/runs/20260312_233132_smoke_ready`
+- full: `evaluations/runs/20260312_234959_full_matrix`
+- one: `evaluations/runs/20260312_233132_AT-034`
+
 ## Phase 1: Rust Harness Skeleton
 
 ### 1.1 Create crate
 
-- [ ] Create `crates/eval_harness/Cargo.toml`.
-- [ ] Create `crates/eval_harness/src/main.rs`.
-- [ ] Add `crates/eval_harness` to workspace members in `Cargo.toml`.
+- [x] Create `crates/eval_harness/Cargo.toml`.
+- [x] Create `crates/eval_harness/src/main.rs`.
+- [x] Add `crates/eval_harness` to workspace members in `Cargo.toml`.
 
 Verification:
 
@@ -30,9 +36,9 @@ Verification:
 
 ### 1.2 CLI command surface
 
-- [ ] Add command: `run --profile <name>`.
-- [ ] Add command: `run --at <AT-ID>`.
-- [ ] Add command: `compile --input <dir> --output <dir>`.
+- [x] Add command: `run --profile <name>`.
+- [x] Add command: `run --at <AT-ID>`.
+- [x] Add command: `compile --input <dir> --output <dir>`.
 
 Verification:
 
@@ -41,9 +47,9 @@ Verification:
 
 ### 1.3 Makefile integration
 
-- [ ] Keep `make ac` mapped to smoke profile.
-- [ ] Keep `make ac-full` mapped to full matrix profile.
-- [ ] Keep `make ac-one AT=AT-00X` mapped to single-AT mode.
+- [x] Keep `make ac` mapped to smoke profile.
+- [x] Keep `make ac-full` mapped to full matrix profile.
+- [x] Keep `make ac-one AT=AT-00X` mapped to single-AT mode.
 
 Verification:
 
@@ -54,9 +60,9 @@ Verification:
 
 ### 2.1 Run identity
 
-- [ ] Implement `run_id` creation (`YYYYMMDD_HHMMSS_<pipeline_id>`).
-- [ ] Implement `config_hash` generation from normalized run inputs.
-- [ ] Write `evaluations/runs/<run_id>/manifest.json`.
+- [x] Implement `run_id` creation (`YYYYMMDD_HHMMSS_<pipeline_id>`).
+- [x] Implement `config_hash` generation from normalized run inputs.
+- [x] Write `evaluations/runs/<run_id>/manifest.json`.
 
 Verification:
 
@@ -64,8 +70,8 @@ Verification:
 
 ### 2.2 Preflight
 
-- [ ] Implement preflight checks and write `preflight.json`.
-- [ ] Fail fast on missing config/env/dependencies.
+- [x] Implement preflight checks and write `preflight.json`.
+- [x] Fail fast on missing config/env/dependencies.
 
 Verification:
 
@@ -73,11 +79,11 @@ Verification:
 
 ### 2.3 Required run artifacts
 
-- [ ] Emit `traces.jsonl`.
-- [ ] Emit `summary.json`.
-- [ ] Emit `triage.json`.
-- [ ] Emit `evaluations/reports/run_<run_id>.md`.
-- [ ] Emit `evaluations/reports/run_<run_id>.json`.
+- [x] Emit `traces.jsonl`.
+- [x] Emit `summary.json`.
+- [x] Emit `triage.json`.
+- [x] Emit `evaluations/reports/run_<run_id>.md`.
+- [x] Emit `evaluations/reports/run_<run_id>.json`.
 
 Verification:
 
@@ -109,9 +115,9 @@ Verification:
 
 ### 3.3 Single-AT TDD loop guardrail
 
-- [ ] Ensure `--at` executes only selected AT.
-- [ ] Ensure single-AT run still emits full artifact set.
-- [ ] Include selected AT id in report title and metadata.
+- [x] Ensure `--at` executes only selected AT.
+- [x] Ensure single-AT run still emits full artifact set.
+- [x] Include selected AT id in report title and metadata.
 
 Verification:
 
@@ -121,9 +127,9 @@ Verification:
 
 ### 4.1 Metric scorer
 
-- [ ] Compute correctness metrics from traces.
-- [ ] Compute latency/throughput/deny metrics.
-- [ ] Compute reproducibility metrics for repeated runs.
+- [x] Compute correctness metrics from traces.
+- [x] Compute latency/throughput/deny metrics.
+- [x] Compute reproducibility metrics for repeated runs.
 
 Verification:
 
@@ -131,13 +137,13 @@ Verification:
 
 ### 4.2 Evidence linking
 
-- [ ] Add evidence links in markdown report:
+- [x] Add evidence links in markdown report:
   - manifest path
   - preflight path
   - traces path
   - summary path
   - triage path
-- [ ] Include AT pass/fail table in report.
+- [x] Include AT pass/fail table in report.
 
 Verification:
 
@@ -145,8 +151,8 @@ Verification:
 
 ### 4.3 Report compiler
 
-- [ ] Implement compiled report generation across run ids.
-- [ ] Emit:
+- [x] Implement compiled report generation across run ids.
+- [x] Emit:
   - `evaluations/reports/compiled_<stamp>.md`
   - `evaluations/reports/compiled_<stamp>.json`
 
@@ -158,8 +164,8 @@ Verification:
 
 ### 5.1 Redis-backed execution
 
-- [ ] Integrate backend setup flow in harness execution path.
-- [ ] Implement AT coverage for `AT-016`, `AT-017`.
+- [x] Integrate backend setup flow in harness execution path.
+- [x] Implement AT coverage for `AT-016`, `AT-017`.
 
 Verification:
 
@@ -167,8 +173,8 @@ Verification:
 
 ### 5.2 Reproducibility gate
 
-- [ ] Add repeat-run flow (`--repeat 2` minimum).
-- [ ] Enforce reproducibility thresholds as pass/fail criteria.
+- [x] Add repeat-run flow (`--repeat 2` minimum).
+- [x] Enforce reproducibility thresholds as pass/fail criteria.
 
 Verification:
 
@@ -178,8 +184,8 @@ Verification:
 
 ### 6.1 Failure injection
 
-- [ ] Implement deterministic `outage`, `latency`, and `flapping` controls.
-- [ ] Wire ATs `AT-025` to `AT-029`.
+- [x] Implement deterministic `outage`, `latency`, and `flapping` controls.
+- [x] Wire ATs `AT-025` to `AT-029`.
 
 Verification:
 
@@ -187,8 +193,8 @@ Verification:
 
 ### 6.2 RR/SA profiles
 
-- [ ] Add reusable RR and SA scenario profiles.
-- [ ] Wire ATs `AT-030` to `AT-034`.
+- [x] Add reusable RR and SA scenario profiles.
+- [x] Wire ATs `AT-030` to `AT-034`.
 
 Verification:
 
@@ -196,9 +202,9 @@ Verification:
 
 ## Phase 7: Productized Commands
 
-- [ ] `make ac` executes implemented smoke acceptance end-to-end.
-- [ ] `make ac-full` executes implemented full acceptance matrix end-to-end.
-- [ ] `make ac-one AT=AT-00X` executes only one AT end-to-end.
+- [x] `make ac` executes implemented smoke acceptance end-to-end.
+- [x] `make ac-full` executes implemented full acceptance matrix end-to-end.
+- [x] `make ac-one AT=AT-00X` executes only one AT end-to-end.
 
 Verification:
 
@@ -207,7 +213,7 @@ Verification:
 ## Final Acceptance Sign-off Checklist
 
 - [ ] All ready ATs pass.
-- [ ] Artifact completeness is `1.0` for ready scenarios.
-- [ ] Reports include key metrics and evidence links.
-- [ ] Compiled report generation works for multi-run batches.
-- [ ] Makefile command contract remains stable.
+- [x] Artifact completeness is `1.0` for ready scenarios.
+- [x] Reports include key metrics and evidence links.
+- [x] Compiled report generation works for multi-run batches.
+- [x] Makefile command contract remains stable.
