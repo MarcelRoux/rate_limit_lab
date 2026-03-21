@@ -26,3 +26,6 @@ docker/env/*.env
 
 # Developer-specific agent instructions.
 AGENTS.md
+
+# Evaluation results
+evaluations/
