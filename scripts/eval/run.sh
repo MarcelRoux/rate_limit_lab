@@ -19,7 +19,7 @@ fi
 
 case "$MODE" in
   smoke)
-    cargo run -p eval_harness -- run --profile smoke_ready
+    cargo run -p eval_harness -- run --profile smoke_ready --repeat 2
     ;;
   full)
     cargo run -p eval_harness -- run --profile full_matrix --repeat 2

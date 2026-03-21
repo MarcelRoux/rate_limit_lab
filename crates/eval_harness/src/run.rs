@@ -4,8 +4,9 @@ use chrono::Utc;
 
 use crate::{
     at_engine::{
-        build_failure_timeline, build_rr_sa_comparison, execute_at,
-        finalize_distributed_trace_checks, is_failure_at, score_backend_policy_conformance,
+        at_registry_validate_selected, build_failure_timeline, build_rr_sa_comparison, execute_at,
+        finalize_distributed_trace_checks, finalize_post_run_contract_checks, is_failure_at,
+        score_backend_policy_conformance,
     },
     backend::{compute_config_hash, prepare_distributed_backend},
     metrics::{
@@ -51,6 +52,7 @@ pub(crate) fn run_command(
     fs::create_dir_all(&snapshot_dir).map_err(|e| format!("create run dirs: {e}"))?;
 
     let selected_ats = select_ats(profile.clone(), at.clone());
+    at_registry_validate_selected(&selected_ats)?;
     let redis_url_present = env::var("REDIS_URL").is_ok();
     let distributed_requested = selected_ats
         .iter()
@@ -158,8 +160,19 @@ pub(crate) fn run_command(
         metrics.per_key_allow_variance = Some(comparison.rr_per_key_allow_variance);
         metrics.global_target_drift_pct = Some(comparison.rr_global_target_drift_pct);
     }
+
+    finalize_post_run_contract_checks(
+        run_dir.as_path(),
+        &mut at_results,
+        &reproducibility,
+        rr_sa_comparison.as_ref(),
+    );
+
     let has_fail = at_results.iter().any(|r| r.status == "fail");
     let has_not_implemented = at_results.iter().any(|r| r.status == "not_implemented");
+    let has_at_050_probe = at_results
+        .iter()
+        .any(|r| r.at_id == "AT-050" && r.status == "pass");
     let has_repro_failure = !reproducibility.gate_passed;
     let status = if has_fail || has_not_implemented || has_repro_failure {
         "fail"
@@ -179,7 +192,7 @@ pub(crate) fn run_command(
     write_json(run_dir.join("summary.json"), &summary)?;
 
     let mut triage_labels: Vec<&str> = Vec::new();
-    if has_not_implemented {
+    if has_not_implemented || has_at_050_probe {
         triage_labels.push("MISSING_REQUIRED_EVIDENCE");
     }
     if has_fail {

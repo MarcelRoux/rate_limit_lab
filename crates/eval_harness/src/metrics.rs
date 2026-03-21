@@ -182,3 +182,51 @@ pub(crate) fn validate_required_artifacts(run_dir: &Path) -> Result<(), String> 
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::model::TraceRecord;
+
+    use super::score_reproducibility;
+
+    #[test]
+    fn reproducibility_gate_passes_for_stable_traces() {
+        let traces = vec![
+            TraceRecord {
+                at_id: Some("AT-012".to_string()),
+                trace_id: "t1".to_string(),
+                scenario_id: "smoke_ready".to_string(),
+                request_started_at: 1,
+                request_completed_at: 2,
+                key: "k".to_string(),
+                http_status: 200,
+                decision: "allow".to_string(),
+                retry_after_ms: None,
+                latency_ms: 1,
+                backend_outcome: "none".to_string(),
+                failure_policy: None,
+                error_code: None,
+            },
+            TraceRecord {
+                at_id: Some("AT-012".to_string()),
+                trace_id: "t2".to_string(),
+                scenario_id: "smoke_ready".to_string(),
+                request_started_at: 3,
+                request_completed_at: 4,
+                key: "k".to_string(),
+                http_status: 200,
+                decision: "allow".to_string(),
+                retry_after_ms: None,
+                latency_ms: 1,
+                backend_outcome: "none".to_string(),
+                failure_policy: None,
+                error_code: None,
+            },
+        ];
+
+        let scored = score_reproducibility(2, &traces, 1).expect("reproducibility scoring");
+        assert!(scored.gate_passed);
+        assert_eq!(scored.repeat_run_decision_delta_pp, 0.0);
+        assert_eq!(scored.repeat_run_latency_p95_delta_pct, 0.0);
+    }
+}
