@@ -49,13 +49,13 @@ Additionally, matrix/aggregate scenarios must produce:
 
 | Scenario ID | Milestone | Linked AT IDs | Goal | Primary Execution Input | Expected Outcome | Required Report Add-on | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| S_M3_3_OUTAGE_SHORT | M3.3 | AT-025 | Validate short outage policy behavior | deterministic outage injection | behavior matches configured policy | outage timeline chart/table | planned |
-| S_M3_3_OUTAGE_LONG | M3.3 | AT-026 | Validate long outage behavior contract | sustained outage injection | no silent transitions | explicit transition log section | planned |
-| S_M3_3_LATENCY_SPIKE | M3.3 | AT-027 | Validate behavior during backend latency spikes | latency injection | conformance + triage correctness | latency spike impact section | planned |
-| S_M3_3_BACKEND_FLAP | M3.3 | AT-028, AT-029 | Validate flapping resilience and reporting | flapping injection | deterministic transitions and recovery evidence | policy-decisions timeline in report | planned |
-| S_M3_4_RR_FAIRNESS | M3.4 | AT-030, AT-032 | Validate fairness/drift under round-robin routing | RR multi-instance profile | fairness and drift metrics computed | per-key fairness/drift tables | planned |
-| S_M3_4_SA_FAIRNESS | M3.4 | AT-031, AT-033 | Validate fairness/drift under sticky-affinity routing | SA multi-instance profile | fairness and drift metrics computed | RR vs SA comparison section | planned |
-| S_M3_4_DISTRIBUTED_COMPILED_REPORT | M3.4 | AT-034 | Compile distributed matrix into aggregate report | matrix run compiler | compiled report artifacts produced | `compiled_<stamp>.md/.json` | planned |
+| S_M3_3_OUTAGE_SHORT | M3.3 | AT-025 | Validate short outage policy behavior | deterministic outage injection | behavior matches configured policy | outage timeline chart/table | ready |
+| S_M3_3_OUTAGE_LONG | M3.3 | AT-026 | Validate long outage behavior contract | sustained outage injection | no silent transitions | explicit transition log section | ready |
+| S_M3_3_LATENCY_SPIKE | M3.3 | AT-027 | Validate behavior during backend latency spikes | latency injection | conformance + triage correctness | latency spike impact section | ready |
+| S_M3_3_BACKEND_FLAP | M3.3 | AT-028, AT-029 | Validate flapping resilience and reporting | flapping injection | deterministic transitions and recovery evidence | policy-decisions timeline in report | ready |
+| S_M3_4_RR_FAIRNESS | M3.4 | AT-030, AT-032 | Validate fairness/drift under round-robin routing | RR multi-instance profile | fairness and drift metrics computed | per-key fairness/drift tables | ready |
+| S_M3_4_SA_FAIRNESS | M3.4 | AT-031, AT-033 | Validate fairness/drift under sticky-affinity routing | SA multi-instance profile | fairness and drift metrics computed | RR vs SA comparison section | ready |
+| S_M3_4_DISTRIBUTED_COMPILED_REPORT | M3.4 | AT-034 | Compile distributed matrix into aggregate report | matrix run compiler | compiled report artifacts produced | `compiled_<stamp>.md/.json` | ready |
 | S_M3_5_LEASE_REFRESH | M3.5 | AT-035 | Validate lease refresh correctness | lease/refresh scenario | no over-issuance and coherent lease events | lease lifecycle section | planned |
 | S_M3_5_DEGRADED_TRANSITIONS | M3.5 | AT-036, AT-038, AT-039 | Validate degraded mode transitions and recovery | long-outage + restore scenario | state transitions match config | transition timeline + recovery section | planned |
 | S_M3_5_FALLBACK_CAPS | M3.5 | AT-037 | Validate fallback cap enforcement | degraded fallback stress profile | cap never exceeded | cap violation counter section | planned |

@@ -18,9 +18,9 @@ Use this alongside:
 
 Last verified command-contract runs:
 
-- smoke: `evaluations/runs/20260313_163756_smoke_ready`
-- full: `evaluations/runs/20260313_174452_full_matrix`
-- one: `evaluations/runs/20260313_163759_AT-004`
+- smoke: `evaluations/runs/20260321_203235_smoke_ready`
+- full: `evaluations/runs/20260321_203432_full_matrix`
+- one: `evaluations/runs/20260321_203230_AT-034`
 
 ## Phase 1: Rust Harness Skeleton
 
@@ -104,8 +104,8 @@ Verification:
 
 ### 3.2 Implement current ready AT set
 
-- [ ] Implement AT execution for `AT-004` to `AT-024`.
-- [ ] Implement `AT-050` (missing artifact hard fail).
+- [x] Implement AT execution for `AT-004` to `AT-024`.
+- [x] Implement `AT-050` (missing artifact hard fail).
 
 Verification:
 
@@ -184,8 +184,8 @@ Verification:
 
 ### 6.1 Failure injection
 
-- [ ] Implement deterministic `outage`, `latency`, and `flapping` controls.
-- [ ] Wire ATs `AT-025` to `AT-029`.
+- [x] Implement deterministic `outage`, `latency`, and `flapping` controls.
+- [x] Wire ATs `AT-025` to `AT-029`.
 
 Verification:
 
@@ -193,8 +193,8 @@ Verification:
 
 ### 6.2 RR/SA profiles
 
-- [ ] Add reusable RR and SA scenario profiles.
-- [ ] Wire ATs `AT-030` to `AT-034`.
+- [x] Add reusable RR and SA scenario profiles.
+- [x] Wire ATs `AT-030` to `AT-034`.
 
 Verification:
 
@@ -212,7 +212,7 @@ Verification:
 
 ## Final Acceptance Sign-off Checklist
 
-- [ ] All ready ATs pass.
+- [x] All ready ATs pass.
 - [x] Artifact completeness is `1.0` for ready scenarios.
 - [x] Reports include key metrics and evidence links.
 - [x] Compiled report generation works for multi-run batches.

@@ -50,16 +50,16 @@ Any missing artifact is an automatic fail.
 | AT-022 | M3.2 | Hybrid fail-open on backend error | `cargo test -p rate_limit_hybrid distributed_backend_error_obeys_fail_open` | test pass | ready |
 | AT-023 | M3.2 | Hybrid fail-closed on backend error | `cargo test -p rate_limit_hybrid distributed_backend_error_obeys_fail_closed` | test pass | ready |
 | AT-024 | M3.2 | Hybrid ordering head-start behavior | `cargo test -p rate_limit_hybrid option_a2_head_start_reduces_total_wait` | test pass | ready |
-| AT-025 | M3.3 | Inject short backend outage deterministically | harness outage control scenario | observed behavior matches configured failure policy | planned |
-| AT-026 | M3.3 | Inject long backend outage deterministically | harness outage control scenario | no silent behavior transition; contract labels emitted | planned |
-| AT-027 | M3.3 | Inject backend latency spike | harness latency injection scenario | policy and latency triage labels correct | planned |
-| AT-028 | M3.3 | Inject backend flapping | harness flapping scenario | mode changes and recovery are observable and deterministic | planned |
-| AT-029 | M3.3 | Failure scenarios produce outage timeline report | report generation check | report includes event timeline and policy decisions | planned |
-| AT-030 | M3.4 | RR routing fairness capture | RR multi-instance scenario | fairness metrics emitted and within configured bounds | planned |
-| AT-031 | M3.4 | SA routing fairness capture | SA multi-instance scenario | fairness metrics emitted and compared to RR | planned |
-| AT-032 | M3.4 | Global drift measurement under RR | RR drift scenario | `global_target_drift_pct` computed and reported | planned |
-| AT-033 | M3.4 | Global drift measurement under SA | SA drift scenario | drift computed and reported | planned |
-| AT-034 | M3.4 | Distributed metrics report bundle generation | full matrix run | consolidated comparative report is produced | planned |
+| AT-025 | M3.3 | Inject short backend outage deterministically | harness outage control scenario | observed behavior matches configured failure policy | ready |
+| AT-026 | M3.3 | Inject long backend outage deterministically | harness outage control scenario | no silent behavior transition; contract labels emitted | ready |
+| AT-027 | M3.3 | Inject backend latency spike | harness latency injection scenario | policy and latency triage labels correct | ready |
+| AT-028 | M3.3 | Inject backend flapping | harness flapping scenario | mode changes and recovery are observable and deterministic | ready |
+| AT-029 | M3.3 | Failure scenarios produce outage timeline report | report generation check | report includes event timeline and policy decisions | ready |
+| AT-030 | M3.4 | RR routing fairness capture | RR multi-instance scenario | fairness metrics emitted and within configured bounds | ready |
+| AT-031 | M3.4 | SA routing fairness capture | SA multi-instance scenario | fairness metrics emitted and compared to RR | ready |
+| AT-032 | M3.4 | Global drift measurement under RR | RR drift scenario | `global_target_drift_pct` computed and reported | ready |
+| AT-033 | M3.4 | Global drift measurement under SA | SA drift scenario | drift computed and reported | ready |
+| AT-034 | M3.4 | Distributed metrics report bundle generation | full matrix run | consolidated comparative report is produced | ready |
 | AT-035 | M3.5 | Lease refresh-loop correctness | lease scenario | no over-issuance; lease events consistent | planned |
 | AT-036 | M3.5 | Degraded fallback transition correctness | outage crossing threshold scenario | transition sequence matches configured state machine | planned |
 | AT-037 | M3.5 | Per-instance fallback cap enforcement | degraded scenario | cap never exceeded | planned |
