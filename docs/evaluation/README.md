@@ -11,6 +11,7 @@ Use these files in this order:
 5. `baseline_policy.md`: baseline update and regression governance.
 6. `shortcomings_and_remediation.md`: current harness gaps and remediation sequence.
 7. `execution_checklist.md`: granular implementation checklist for deterministic harness delivery.
+8. `product_facets_overview.md`: project-level product facet summary, current state, and effort outlook (includes proposed observability UI milestone).
 
 ## Operating Principle
 
