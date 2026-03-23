@@ -18,6 +18,9 @@ help:
 	@echo "  make valkey-up      Start Valkey (6380->6379)"
 	@echo "  make valkey-down    Stop Valkey"
 	@echo "  make valkey-logs    Tail Valkey logs"
+	@echo "  make obs-up         Start Prometheus + Grafana (9090, 3001)"
+	@echo "  make obs-down       Stop observability services"
+	@echo "  make obs-logs       Tail observability service logs"
 	@echo "  make down           Stop all services started from this compose file"
 	@echo "  make reset          Stop all + remove volumes"
 	@echo ""
@@ -59,6 +62,18 @@ valkey-logs:
 .PHONY: down
 down:
 	docker compose -f $(COMPOSE_FILE) down
+
+.PHONY: obs-up
+obs-up:
+	docker compose -f $(COMPOSE_FILE) --profile observability up -d prometheus grafana
+
+.PHONY: obs-down
+obs-down:
+	docker compose -f $(COMPOSE_FILE) --profile observability down
+
+.PHONY: obs-logs
+obs-logs:
+	docker compose -f $(COMPOSE_FILE) logs -f prometheus grafana
 
 .PHONY: reset
 reset:
