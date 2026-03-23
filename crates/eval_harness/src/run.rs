@@ -5,7 +5,8 @@ use chrono::Utc;
 use crate::{
     at_engine::{
         at_registry_validate_selected, build_failure_timeline, build_rr_sa_comparison, execute_at,
-        finalize_distributed_trace_checks, finalize_post_run_contract_checks, is_failure_at,
+        finalize_distributed_trace_checks, finalize_observability_contract_checks,
+        finalize_observability_report_link_check, finalize_post_run_contract_checks, is_failure_at,
         score_backend_policy_conformance,
     },
     backend::{compute_config_hash, prepare_distributed_backend},
@@ -167,6 +168,7 @@ pub(crate) fn run_command(
         &reproducibility,
         rr_sa_comparison.as_ref(),
     );
+    finalize_observability_contract_checks(run_dir.as_path(), &mut at_results);
 
     let has_fail = at_results.iter().any(|r| r.status == "fail");
     let has_not_implemented = at_results.iter().any(|r| r.status == "not_implemented");
@@ -209,6 +211,46 @@ pub(crate) fn run_command(
 
     validate_required_artifacts(&run_dir)?;
     validate_trace_schema(&run_dir.join("traces.jsonl"))?;
+
+    write_run_reports(
+        reports_dir,
+        &run_id,
+        &run_dir,
+        &summary,
+        rr_sa_comparison.clone(),
+    )?;
+
+    finalize_observability_report_link_check(
+        reports_dir,
+        &run_id,
+        &run_dir,
+        &mut summary.at_results,
+    );
+    let final_has_fail = summary.at_results.iter().any(|r| r.status == "fail");
+    let final_has_not_implemented = summary
+        .at_results
+        .iter()
+        .any(|r| r.status == "not_implemented");
+    let final_has_repro_failure = !summary.reproducibility.gate_passed;
+    summary.status = if final_has_fail || final_has_not_implemented || final_has_repro_failure {
+        "fail".to_string()
+    } else {
+        "pass".to_string()
+    };
+    write_json(run_dir.join("summary.json"), &summary)?;
+
+    let mut final_triage_labels: Vec<&str> = Vec::new();
+    if final_has_not_implemented || has_at_050_probe {
+        final_triage_labels.push("MISSING_REQUIRED_EVIDENCE");
+    }
+    if final_has_fail {
+        final_triage_labels.push("EXECUTION_FAILURE");
+    }
+    if final_has_repro_failure {
+        final_triage_labels.push("NON_REPRODUCIBLE_RUN");
+    }
+    let final_triage = serde_json::json!({ "labels": final_triage_labels });
+    write_json(run_dir.join("triage.json"), &final_triage)?;
 
     write_run_reports(reports_dir, &run_id, &run_dir, &summary, rr_sa_comparison)?;
 

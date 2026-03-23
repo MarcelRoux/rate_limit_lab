@@ -122,7 +122,7 @@ pub(crate) struct TimelineEvent {
     pub(crate) conformant: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct RrSaComparison {
     pub(crate) rr_per_key_allow_variance: f64,
     pub(crate) sa_per_key_allow_variance: f64,

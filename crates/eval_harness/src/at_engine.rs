@@ -1,6 +1,6 @@
 use std::{
     env, fs,
-    path::Path,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -31,6 +31,7 @@ enum AtExecutor {
     CargoTest {
         package: &'static str,
         test_name: &'static str,
+        features: Option<&'static str>,
     },
 }
 
@@ -56,6 +57,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rate_limit",
                 test_name: "hierarchical_allows_if_both_pass",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -64,6 +66,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rate_limit",
                 test_name: "hierarchical_denies_if_global_exceeded",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -72,6 +75,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rate_limit",
                 test_name: "hierarchical_denies_if_key_exceeded",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -80,6 +84,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rate_limit",
                 test_name: "hierarchical_allows_if_both_pass",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -88,6 +93,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rest",
                 test_name: "rest_middleware_allows_request",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -96,6 +102,7 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
             executor: AtExecutor::CargoTest {
                 package: "rest",
                 test_name: "rest_middleware_denies_request",
+                features: None,
             },
             non_ready_reason: None,
         },
@@ -106,56 +113,108 @@ fn at_registry_entry(at_id: &str) -> AtRegistryEntry {
                 "AT-010" => AtExecutor::CargoTest {
                     package: "traffic_rest",
                     test_name: "config::tests::single_key_requires_key_value",
+                    features: None,
                 },
                 "AT-011" => AtExecutor::CargoTest {
                     package: "traffic_rest",
                     test_name: "config::tests::round_robin_requires_keys",
+                    features: None,
                 },
                 "AT-012" => AtExecutor::CargoTest {
                     package: "eval_harness",
                     test_name: "metrics::tests::reproducibility_gate_passes_for_stable_traces",
+                    features: None,
                 },
                 "AT-013" => AtExecutor::CargoTest {
                     package: "rate_limit_distributed",
                     test_name: "allows_when_backend_allows",
+                    features: None,
                 },
                 "AT-014" => AtExecutor::CargoTest {
                     package: "rate_limit_distributed",
                     test_name: "denies_when_backend_denies",
+                    features: None,
                 },
                 "AT-015" => AtExecutor::CargoTest {
                     package: "rate_limit_distributed",
                     test_name: "denies_with_backend_error_retry_after",
+                    features: None,
                 },
                 "AT-018" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "local_and_distributed_allow",
+                    features: None,
                 },
                 "AT-019" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "short_circuits_when_local_denies_before_distributed_completes",
+                    features: None,
                 },
                 "AT-020" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "distributed_denies_when_local_allows",
+                    features: None,
                 },
                 "AT-021" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "max_retry_after_when_both_deny",
+                    features: None,
                 },
                 "AT-022" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "distributed_backend_error_obeys_fail_open",
+                    features: None,
                 },
                 "AT-023" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "distributed_backend_error_obeys_fail_closed",
+                    features: None,
                 },
                 "AT-024" => AtExecutor::CargoTest {
                     package: "rate_limit_hybrid",
                     test_name: "option_a2_head_start_reduces_total_wait",
+                    features: None,
                 },
                 _ => AtExecutor::ReadyPlaceholder,
+            },
+            non_ready_reason: None,
+        },
+        "AT-052" => AtRegistryEntry {
+            lifecycle: AtLifecycleStatus::Ready,
+            executor: AtExecutor::CargoTest {
+                package: "rest",
+                test_name: "config::tests::observability_defaults_to_disabled",
+                features: None,
+            },
+            non_ready_reason: None,
+        },
+        "AT-053" => AtRegistryEntry {
+            lifecycle: AtLifecycleStatus::Ready,
+            executor: AtExecutor::CargoTest {
+                package: "rest",
+                test_name: "metrics_endpoint_returns_prometheus_metric_families_when_enabled",
+                features: Some("observability_ui"),
+            },
+            non_ready_reason: None,
+        },
+        "AT-054" => AtRegistryEntry {
+            lifecycle: AtLifecycleStatus::Ready,
+            executor: AtExecutor::DeterministicScenario {
+                evidence: "prometheus scrape contract validation scheduled",
+            },
+            non_ready_reason: None,
+        },
+        "AT-055" => AtRegistryEntry {
+            lifecycle: AtLifecycleStatus::Ready,
+            executor: AtExecutor::DeterministicScenario {
+                evidence: "grafana dashboard provisioning validation scheduled",
+            },
+            non_ready_reason: None,
+        },
+        "AT-056" => AtRegistryEntry {
+            lifecycle: AtLifecycleStatus::Ready,
+            executor: AtExecutor::DeterministicScenario {
+                evidence: "observability report evidence linkage validation scheduled",
             },
             non_ready_reason: None,
         },
@@ -348,25 +407,46 @@ pub(crate) fn execute_at(
             status: "pass".to_string(),
             evidence: evidence.to_string(),
         },
-        AtExecutor::CargoTest { package, test_name } => {
-            let result = run_process(
-                "cargo",
-                &["test", "-p", package, test_name, "--", "--exact"],
-            );
+        AtExecutor::CargoTest {
+            package,
+            test_name,
+            features,
+        } => {
+            let mut args = vec!["test", "-p", package, test_name];
+            if let Some(feature_name) = features {
+                args.push("--features");
+                args.push(feature_name);
+            }
+            args.push("--");
+            args.push("--exact");
+            let result = run_process("cargo", &args);
             if result.success {
                 AtResult {
                     at_id: at_id.to_string(),
                     status: "pass".to_string(),
-                    evidence: format!("cargo test -p {package} {test_name} -- --exact passed"),
+                    evidence: if let Some(feature_name) = features {
+                        format!(
+                            "cargo test -p {package} {test_name} --features {feature_name} -- --exact passed"
+                        )
+                    } else {
+                        format!("cargo test -p {package} {test_name} -- --exact passed")
+                    },
                 }
             } else {
                 AtResult {
                     at_id: at_id.to_string(),
                     status: "fail".to_string(),
-                    evidence: format!(
-                        "cargo test -p {package} {test_name} -- --exact failed: {}",
-                        result.details
-                    ),
+                    evidence: if let Some(feature_name) = features {
+                        format!(
+                            "cargo test -p {package} {test_name} --features {feature_name} -- --exact failed: {}",
+                            result.details
+                        )
+                    } else {
+                        format!(
+                            "cargo test -p {package} {test_name} -- --exact failed: {}",
+                            result.details
+                        )
+                    },
                 }
             }
         }
@@ -474,6 +554,11 @@ pub(crate) fn at_registry_validate_selected(selected_ats: &[String]) -> Result<(
                 | "AT-049"
                 | "AT-050"
                 | "AT-051"
+                | "AT-052"
+                | "AT-053"
+                | "AT-054"
+                | "AT-055"
+                | "AT-056"
         ) {
             return Err(format!("AT `{at_id}` is not present in registry"));
         }
@@ -707,6 +792,147 @@ pub(crate) fn finalize_post_run_contract_checks(
             at.evidence = format!(
                 "RR/SA comparison artifact produced: {}",
                 comparison_path.display()
+            );
+        }
+    }
+}
+
+pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results: &mut [AtResult]) {
+    let has_obs_ats = at_results
+        .iter()
+        .any(|r| matches!(r.at_id.as_str(), "AT-054" | "AT-055" | "AT-056"));
+    if !has_obs_ats {
+        return;
+    }
+
+    let prometheus_cfg = PathBuf::from("docker/observability/prometheus/prometheus.yml");
+    let grafana_ds =
+        PathBuf::from("docker/observability/grafana/provisioning/datasources/datasource.yml");
+    let grafana_dashboards =
+        PathBuf::from("docker/observability/grafana/provisioning/dashboards/dashboards.yml");
+    let grafana_dashboard_json =
+        PathBuf::from("docker/observability/grafana/dashboards/rate_limit_lab_overview.json");
+
+    let prometheus_text = fs::read_to_string(&prometheus_cfg).ok();
+    let at_054_ok = prometheus_text
+        .as_deref()
+        .map(|text| {
+            text.contains("job_name: \"rate_limit_rest\"")
+                && text.contains("metrics_path: /metrics")
+                && text.contains("host.docker.internal:3000")
+        })
+        .unwrap_or(false);
+    if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-054") {
+        if at_054_ok {
+            at.status = "pass".to_string();
+            at.evidence = format!(
+                "prometheus scrape contract validated in {}",
+                prometheus_cfg.display()
+            );
+        } else {
+            at.status = "fail".to_string();
+            at.evidence = format!(
+                "prometheus scrape contract invalid or missing: {}",
+                prometheus_cfg.display()
+            );
+        }
+    }
+
+    let ds_exists = grafana_ds.exists();
+    let dashboards_provider_exists = grafana_dashboards.exists();
+    let dashboard_text = fs::read_to_string(&grafana_dashboard_json).ok();
+    let mut required_panels_present = false;
+    if let Some(text) = dashboard_text.as_deref()
+        && let Ok(value) = serde_json::from_str::<serde_json::Value>(text)
+        && let Some(panels) = value.get("panels").and_then(|v| v.as_array())
+    {
+        let titles = panels
+            .iter()
+            .filter_map(|p| p.get("title").and_then(|t| t.as_str()))
+            .collect::<Vec<_>>();
+        required_panels_present = titles.contains(&"Request Throughput")
+            && titles.contains(&"Deny Rate")
+            && titles.contains(&"Observed Request Latency (ms)");
+    }
+    let at_055_ok = ds_exists && dashboards_provider_exists && required_panels_present;
+    if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-055") {
+        if at_055_ok {
+            at.status = "pass".to_string();
+            at.evidence = format!(
+                "grafana provisioning contract validated: {}, {}, {}",
+                grafana_ds.display(),
+                grafana_dashboards.display(),
+                grafana_dashboard_json.display()
+            );
+        } else {
+            at.status = "fail".to_string();
+            at.evidence =
+                "grafana provisioning contract invalid or missing required dashboard panels"
+                    .to_string();
+        }
+    }
+
+    let obs_evidence_path = run_dir.join("observability_evidence.json");
+    let payload = serde_json::json!({
+        "prometheus_config": prometheus_cfg.display().to_string(),
+        "prometheus_scrape_contract_ok": at_054_ok,
+        "grafana_datasource_config": grafana_ds.display().to_string(),
+        "grafana_dashboard_provisioning_config": grafana_dashboards.display().to_string(),
+        "grafana_dashboard_json": grafana_dashboard_json.display().to_string(),
+        "grafana_contract_ok": at_055_ok
+    });
+    let obs_evidence_written = fs::write(
+        &obs_evidence_path,
+        serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()),
+    )
+    .is_ok();
+
+    if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-056") {
+        if at_054_ok && at_055_ok && obs_evidence_written {
+            at.status = "pass".to_string();
+            at.evidence = format!(
+                "observability evidence artifact produced: {}",
+                obs_evidence_path.display()
+            );
+        } else {
+            at.status = "fail".to_string();
+            at.evidence = format!(
+                "observability evidence linkage prerequisites failed (at_054_ok={}, at_055_ok={}, artifact_written={})",
+                at_054_ok, at_055_ok, obs_evidence_written
+            );
+        }
+    }
+}
+
+pub(crate) fn finalize_observability_report_link_check(
+    reports_dir: &Path,
+    run_id: &str,
+    run_dir: &Path,
+    at_results: &mut [AtResult],
+) {
+    let has_at_056 = at_results.iter().any(|r| r.at_id == "AT-056");
+    if !has_at_056 {
+        return;
+    }
+
+    let report_md_path = reports_dir.join(format!("run_{}.md", run_id));
+    let report_md = fs::read_to_string(&report_md_path).unwrap_or_default();
+    let evidence_path = run_dir.join("observability_evidence.json");
+    let linked = report_md.contains("## Observability Evidence")
+        && report_md.contains(&evidence_path.display().to_string());
+
+    if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-056") {
+        if linked {
+            at.status = "pass".to_string();
+            at.evidence = format!(
+                "run report links observability evidence artifact: {}",
+                evidence_path.display()
+            );
+        } else {
+            at.status = "fail".to_string();
+            at.evidence = format!(
+                "run report missing observability evidence section/link: {}",
+                report_md_path.display()
             );
         }
     }

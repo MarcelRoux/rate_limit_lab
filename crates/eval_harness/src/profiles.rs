@@ -31,6 +31,12 @@ pub(crate) fn select_ats(profile: Option<String>, at: Option<String>) -> Vec<Str
                 .map(String::from)
                 .collect()
         }
+        (Some(p), None) if p == "observability_mvp" => {
+            vec!["AT-052", "AT-053", "AT-054", "AT-055", "AT-056"]
+                .into_iter()
+                .map(String::from)
+                .collect()
+        }
         (Some(_), None) => vec![String::from("AT-004")],
         (None, Some(single)) => vec![single],
         _ => Vec::new(),
