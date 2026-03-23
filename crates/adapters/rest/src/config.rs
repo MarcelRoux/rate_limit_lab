@@ -56,6 +56,10 @@ pub struct RestServerConfig {
     /// Hybrid limiter options.
     #[serde(default)]
     pub hybrid: Option<HybridConfig>,
+
+    /// Optional observability options.
+    #[serde(default)]
+    pub observability: Option<ObservabilityConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -96,6 +100,12 @@ pub struct DistributedConfig {
 pub struct HybridConfig {
     #[serde(default)]
     pub failure_policy: Option<HybridFailurePolicyMode>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -144,6 +154,7 @@ impl Default for RestServerConfig {
             }),
             distributed: None,
             hybrid: None,
+            observability: None,
         }
     }
 }
@@ -225,6 +236,13 @@ impl RestServerConfig {
         Ok(())
     }
 
+    pub fn observability_enabled(&self) -> bool {
+        self.observability
+            .as_ref()
+            .map(|o| o.enabled)
+            .unwrap_or(false)
+    }
+
     #[cfg(any(feature = "in_memory_limiter", feature = "hybrid_limiter"))]
     fn validate_inmemory_limits(&self) -> Result<(), ConfigError> {
         let limits = self.require_limits()?;
@@ -259,5 +277,37 @@ impl RestServerConfig {
             });
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RestServerConfig;
+
+    #[test]
+    fn observability_defaults_to_disabled() {
+        let cfg = RestServerConfig::default();
+        assert!(!cfg.observability_enabled());
+    }
+
+    #[test]
+    fn observability_can_be_enabled_from_toml() {
+        let toml = r#"
+bind_address = "127.0.0.1:3000"
+key_mode = "header_or_anonymous"
+key_header = "x-api-key"
+anonymous_key = "anonymous"
+instrumentation = "off"
+
+[limits]
+global_per_second = 1000
+per_key_per_second = 1000
+
+[observability]
+enabled = true
+"#;
+
+        let cfg: RestServerConfig = toml::from_str(toml).expect("parse config");
+        assert!(cfg.observability_enabled());
     }
 }

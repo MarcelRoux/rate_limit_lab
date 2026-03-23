@@ -9,6 +9,8 @@ use rate_limit_hybrid::{DistributedFailurePolicy, HybridLimiter, HybridLimiterCo
 
 #[cfg(feature = "hybrid_limiter")]
 use rest::config::HybridFailurePolicyMode;
+#[cfg(feature = "observability_ui")]
+use rest::observability::metrics_handler;
 use rest::{config::RestServerConfig, layer::RateLimitLayer};
 
 #[cfg(feature = "in_memory_limiter")]
@@ -141,6 +143,11 @@ async fn main() {
     let app: Router = Router::new()
         .route("/", get(|| async { "ok" }))
         .layer(RateLimitLayer::new(limiter));
+    #[cfg(feature = "observability_ui")]
+    if cfg.observability_enabled() {
+        log::info!("Observability UI metrics endpoint enabled at /metrics");
+        app = app.route("/metrics", get(metrics_handler));
+    }
 
     let addr: SocketAddr = cfg.bind_socket_addr();
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
