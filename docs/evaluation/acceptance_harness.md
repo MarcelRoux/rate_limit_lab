@@ -43,6 +43,7 @@ Contract-defined now, execution expands as milestones land:
 - M3.5 lease/refresh/degraded-mode validation.
 - M4 gRPC parity validation.
 - M5 usability/reporting and experiment reproducibility validation.
+- M5.4 optional observability UI validation (live metrics pipeline + dashboard evidence).
 
 Acceptance expectations for all milestones are defined in `acceptance_criteria_matrix.md`; scenario-level contracts are defined in `scenario_catalog.md`.
 

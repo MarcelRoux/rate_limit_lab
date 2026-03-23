@@ -77,6 +77,11 @@ Any missing artifact is an automatic fail.
 | AT-049 | M5 | Reproducibility gate enforcement | repeated run command | automatic pass/fail based on reproducibility thresholds | planned |
 | AT-050 | M5 | Missing-artifact hard fail | synthetic incomplete run | run fails with `MISSING_REQUIRED_EVIDENCE` triage label | ready |
 | AT-051 | M5 | Single-AT execution command | `make ac-one AT=AT-00X` | only requested AT executes and emits required artifacts | blocked |
+| AT-052 | M5.4 (optional) | Observability feature gate defaults to off | default binary startup + config check | no observability endpoints are required unless explicitly enabled | ready |
+| AT-053 | M5.4 (optional) | Runtime metrics endpoint is available when enabled | observability-enabled runtime start + endpoint probe | metrics endpoint responds with expected metric families | ready |
+| AT-054 | M5.4 (optional) | Prometheus scrape contract is configured for enabled runtime | scrape config contract check | `rate_limit_rest` job targets `/metrics` and expected endpoint target is present | ready |
+| AT-055 | M5.4 (optional) | Grafana dashboard provisioning contract succeeds | provisioning and dashboard contract check | datasource and dashboard provisioning files exist and required panels are present | ready |
+| AT-056 | M5.4 (optional) | Observability evidence links are emitted in run report | observability-enabled harness run | run report contains `Observability Evidence` section linked to run evidence artifact | ready |
 
 ## Immediate Implementation Priority (Fastest Path)
 
@@ -87,3 +92,4 @@ To move quickly from zero harness to robust harness, implement ATs in this order
 3. `AT-016`, `AT-017` (real backend evidence and trace completeness).
 4. `AT-025` through `AT-034` (failure/distributed matrix).
 5. `AT-035` through `AT-049` as milestone features land.
+6. `AT-052` through `AT-056` when optional observability UI milestone (`M5.4`) begins.

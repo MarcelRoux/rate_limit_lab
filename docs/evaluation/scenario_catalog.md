@@ -71,6 +71,7 @@ Additionally, matrix/aggregate scenarios must produce:
 | S_M5_ONE_COMMAND_FULL_MATRIX | M5 | AT-046, AT-048 | One-command matrix run + compiled report | `make ac-full` | full matrix + compiled outputs produced | matrix summary + compiled outputs | blocked |
 | S_M5_SINGLE_AT_TDD_LOOP | M5 | AT-051 | Run one acceptance test repeatedly for fast fix loops | `make ac-one AT=AT-00X` | only target AT runs and still emits required artifacts | single-AT result section with AT id | blocked |
 | S_M5_BASELINE_GOVERNANCE | M5 | AT-047 | Validate baseline change governance | baseline update workflow test | update blocked if governance evidence missing | baseline governance audit section | planned |
+| S_M5_4_OBSERVABILITY_UI_MVP | M5.4 (optional) | AT-052, AT-053, AT-054, AT-055, AT-056 | Validate optional observability contracts and report evidence linkage | observability-enabled runtime + config/provisioning contract checks | metrics endpoint contract, scrape config contract, dashboard contract, and report evidence are all present | observability evidence section with links to config/provisioning/report artifacts | ready |
 
 ## Terminology
 
