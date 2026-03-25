@@ -3,6 +3,7 @@ use std::{
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
+    time::Instant,
 };
 
 use axum::{
@@ -20,6 +21,16 @@ use rate_limit_hybrid::{DistributedLimiter, HybridLimiter, LocalLimiter};
 use state_backend::StateBackend;
 
 // compile_error!("middleware.rs is being compiled");
+
+#[cfg(feature = "observability_ui")]
+fn maybe_record_observability(decision: &Decision, started: Instant) {
+    let latency_micros = started.elapsed().as_micros() as u64;
+    let is_denied = matches!(decision, Decision::Deny { .. });
+    crate::observability::record_request(is_denied, latency_micros);
+}
+
+#[cfg(not(feature = "observability_ui"))]
+fn maybe_record_observability(_decision: &Decision, _started: Instant) {}
 
 /// Protocol adapter abstraction: any limiter that can produce a `Decision` for a string key.
 ///
@@ -145,6 +156,7 @@ where
     }
 
     fn call(&mut self, req: Request<B>) -> Self::Future {
+        let started = Instant::now();
         let key = extract_key(&req);
         let key_string = key.0;
 
@@ -153,6 +165,7 @@ where
 
         Box::pin(async move {
             let decision = limiter.check(&key_string).await;
+            maybe_record_observability(&decision, started);
 
             match decision {
                 Decision::Allow => inner.call(req).await,
