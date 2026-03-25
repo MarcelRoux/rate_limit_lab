@@ -79,8 +79,8 @@ Any missing artifact is an automatic fail.
 | AT-051 | M5 | Single-AT execution command | `make ac-one AT=AT-00X` | only requested AT executes and emits required artifacts | blocked |
 | AT-052 | M5.4 (optional) | Observability feature gate defaults to off | default binary startup + config check | no observability endpoints are required unless explicitly enabled | ready |
 | AT-053 | M5.4 (optional) | Runtime metrics endpoint is available when enabled | observability-enabled runtime start + endpoint probe | metrics endpoint responds with expected metric families | ready |
-| AT-054 | M5.4 (optional) | Prometheus scrape contract is configured for enabled runtime | scrape config contract check | `rate_limit_rest` job targets `/metrics` and expected endpoint target is present | ready |
-| AT-055 | M5.4 (optional) | Grafana dashboard provisioning contract succeeds | provisioning and dashboard contract check | datasource and dashboard provisioning files exist and required panels are present | ready |
+| AT-054 | M5.4 (optional) | Prometheus scrape contract is configured for enabled runtime | scrape config contract check (and live probe when `EVAL_OBS_LIVE=1`) | contract: `rate_limit_rest` job targets `/metrics` and `rest_observability:3000`; live mode: target health is `UP` | ready |
+| AT-055 | M5.4 (optional) | Grafana dashboard provisioning contract succeeds | provisioning and dashboard contract check (and live API probe when `EVAL_OBS_LIVE=1`) | contract: datasource/provisioning files exist and required panels are present; live mode: dashboard is discoverable via Grafana API | ready |
 | AT-056 | M5.4 (optional) | Observability evidence links are emitted in run report | observability-enabled harness run | run report contains `Observability Evidence` section linked to run evidence artifact | ready |
 
 ## Immediate Implementation Priority (Fastest Path)

@@ -243,6 +243,12 @@ For rapid development on one acceptance behavior:
 
 Single-AT runs still require full artifact generation for that run ID.
 
+Observability live checks:
+
+- `make ac-obs` runs `observability_mvp` with `EVAL_OBS_LIVE=1`.
+- Live mode performs Prometheus/Grafana runtime probes in addition to config contract checks.
+- Live probes use the containerized observability demo stack (`rest_observability`, Prometheus, Grafana).
+
 ## 13. Baseline and Change Control
 
 - Threshold changes require documented rationale in report metadata.

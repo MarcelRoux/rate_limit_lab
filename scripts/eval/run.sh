@@ -5,7 +5,7 @@ MODE="${1:-}"
 AT_ID="${2:-}"
 
 if [ -z "$MODE" ]; then
-  echo "Usage: $0 <smoke|full|one> [AT-00X]"
+  echo "Usage: $0 <smoke|full|obs|one> [AT-00X]"
   exit 2
 fi
 
@@ -24,6 +24,9 @@ case "$MODE" in
   full)
     cargo run -p eval_harness -- run --profile full_matrix --repeat 2
     ;;
+  obs)
+    EVAL_OBS_LIVE=1 cargo run -p eval_harness -- run --profile observability_mvp
+    ;;
   one)
     if [ -z "$AT_ID" ]; then
       echo "Missing AT id. Usage: make ac-one AT=AT-00X"
@@ -32,7 +35,7 @@ case "$MODE" in
     cargo run -p eval_harness -- run --at "$AT_ID"
     ;;
   *)
-    echo "Unknown mode '$MODE'. Use smoke, full, or one."
+    echo "Unknown mode '$MODE'. Use smoke, full, obs, or one."
     exit 2
     ;;
 esac

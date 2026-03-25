@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
+    process::Command as ProcessCommand,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -819,7 +820,7 @@ pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results:
         .map(|text| {
             text.contains("job_name: \"rate_limit_rest\"")
                 && text.contains("metrics_path: /metrics")
-                && text.contains("host.docker.internal:3000")
+                && text.contains("rest_observability:3000")
         })
         .unwrap_or(false);
     if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-054") {
@@ -855,15 +856,49 @@ pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results:
             && titles.contains(&"Observed Request Latency (ms)");
     }
     let at_055_ok = ds_exists && dashboards_provider_exists && required_panels_present;
+
+    let live_mode = env::var("EVAL_OBS_LIVE")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let mut live_targets_ok = false;
+    let mut live_dashboard_ok = false;
+    let live_targets_path = run_dir.join("prometheus_targets_live.json");
+    let live_dashboards_path = run_dir.join("grafana_dashboards_live.json");
+
+    if live_mode {
+        let live =
+            run_live_observability_checks(run_dir, &live_targets_path, &live_dashboards_path);
+        live_targets_ok = live.targets_ok;
+        live_dashboard_ok = live.dashboard_ok;
+        if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-054")
+            && !live_targets_ok
+        {
+            at.status = "fail".to_string();
+            at.evidence = format!("{}; live probe failed: {}", at.evidence, live.details);
+        }
+        if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-055")
+            && !live_dashboard_ok
+        {
+            at.status = "fail".to_string();
+            at.evidence = format!("{}; live probe failed: {}", at.evidence, live.details);
+        }
+    }
     if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-055") {
-        if at_055_ok {
+        if at_055_ok && (!live_mode || live_dashboard_ok) {
             at.status = "pass".to_string();
-            at.evidence = format!(
+            let mut evidence = format!(
                 "grafana provisioning contract validated: {}, {}, {}",
                 grafana_ds.display(),
                 grafana_dashboards.display(),
                 grafana_dashboard_json.display()
             );
+            if live_mode {
+                evidence.push_str(&format!(
+                    "; live dashboards API validated: {}",
+                    live_dashboards_path.display()
+                ));
+            }
+            at.evidence = evidence;
         } else {
             at.status = "fail".to_string();
             at.evidence =
@@ -874,12 +909,17 @@ pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results:
 
     let obs_evidence_path = run_dir.join("observability_evidence.json");
     let payload = serde_json::json!({
+        "live_mode_enabled": live_mode,
         "prometheus_config": prometheus_cfg.display().to_string(),
         "prometheus_scrape_contract_ok": at_054_ok,
+        "prometheus_live_targets_ok": if live_mode { Some(live_targets_ok) } else { None::<bool> },
+        "prometheus_live_targets_artifact": if live_mode { Some(live_targets_path.display().to_string()) } else { None::<String> },
         "grafana_datasource_config": grafana_ds.display().to_string(),
         "grafana_dashboard_provisioning_config": grafana_dashboards.display().to_string(),
         "grafana_dashboard_json": grafana_dashboard_json.display().to_string(),
-        "grafana_contract_ok": at_055_ok
+        "grafana_contract_ok": at_055_ok,
+        "grafana_live_dashboard_ok": if live_mode { Some(live_dashboard_ok) } else { None::<bool> },
+        "grafana_live_dashboard_artifact": if live_mode { Some(live_dashboards_path.display().to_string()) } else { None::<String> }
     });
     let obs_evidence_written = fs::write(
         &obs_evidence_path,
@@ -888,7 +928,12 @@ pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results:
     .is_ok();
 
     if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-056") {
-        if at_054_ok && at_055_ok && obs_evidence_written {
+        if at_054_ok
+            && at_055_ok
+            && (!live_mode || live_targets_ok)
+            && (!live_mode || live_dashboard_ok)
+            && obs_evidence_written
+        {
             at.status = "pass".to_string();
             at.evidence = format!(
                 "observability evidence artifact produced: {}",
@@ -901,6 +946,24 @@ pub(crate) fn finalize_observability_contract_checks(run_dir: &Path, at_results:
                 at_054_ok, at_055_ok, obs_evidence_written
             );
         }
+    }
+
+    if let Some(at) = at_results.iter_mut().find(|r| r.at_id == "AT-054")
+        && at_054_ok
+        && (!live_mode || live_targets_ok)
+    {
+        let mut evidence = format!(
+            "prometheus scrape contract validated in {}",
+            prometheus_cfg.display()
+        );
+        if live_mode {
+            evidence.push_str(&format!(
+                "; live target health validated: {}",
+                live_targets_path.display()
+            ));
+        }
+        at.status = "pass".to_string();
+        at.evidence = evidence;
     }
 }
 
@@ -935,5 +998,85 @@ pub(crate) fn finalize_observability_report_link_check(
                 report_md_path.display()
             );
         }
+    }
+}
+
+struct LiveObservabilityOutcome {
+    targets_ok: bool,
+    dashboard_ok: bool,
+    details: String,
+}
+
+fn run_live_observability_checks(
+    run_dir: &Path,
+    targets_path: &Path,
+    dashboards_path: &Path,
+) -> LiveObservabilityOutcome {
+    let mut details: Vec<String> = Vec::new();
+    let mut obs_demo_ok = false;
+    let _ = fs::create_dir_all(run_dir.join("config_snapshot"));
+
+    let obs_demo = ProcessCommand::new("make").arg("obs-demo").output();
+    match obs_demo {
+        Ok(output) if output.status.success() => {
+            obs_demo_ok = true;
+            details.push("make_obs_demo=ok".to_string());
+        }
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            details.push(format!("make_obs_demo_failed={}", stderr.trim()));
+        }
+        Err(e) => details.push(format!("make_obs_demo_error={e}")),
+    };
+
+    let targets_output = ProcessCommand::new("curl")
+        .args(["-fsS", "http://127.0.0.1:9090/api/v1/targets"])
+        .output();
+    let mut targets_ok = false;
+    if let Ok(output) = targets_output {
+        if output.status.success() {
+            let body = String::from_utf8_lossy(&output.stdout).to_string();
+            let _ = fs::write(targets_path, &body);
+            targets_ok = body.contains("\"job\":\"rate_limit_rest\"")
+                && (body.contains("\"health\":\"up\"") || body.contains("\"health\":\"UP\""));
+            details.push(format!("prometheus_targets_ok={targets_ok}"));
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            details.push(format!("prometheus_targets_query_failed={}", stderr.trim()));
+        }
+    } else {
+        details.push("prometheus_targets_query_error".to_string());
+    }
+
+    let dashboards_output = ProcessCommand::new("curl")
+        .args([
+            "-fsS",
+            "http://127.0.0.1:3001/api/search?query=Rate%20Limit%20Lab%20Overview",
+        ])
+        .output();
+    let mut dashboard_ok = false;
+    if let Ok(output) = dashboards_output {
+        if output.status.success() {
+            let body = String::from_utf8_lossy(&output.stdout).to_string();
+            let _ = fs::write(dashboards_path, &body);
+            dashboard_ok = body.contains("Rate Limit Lab Overview")
+                && body.contains("rate-limit-lab-overview");
+            details.push(format!("grafana_dashboards_ok={dashboard_ok}"));
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            details.push(format!("grafana_search_query_failed={}", stderr.trim()));
+        }
+    } else {
+        details.push("grafana_search_query_error".to_string());
+    }
+
+    if obs_demo_ok {
+        let _ = ProcessCommand::new("make").arg("obs-demo-down").output();
+    }
+
+    LiveObservabilityOutcome {
+        targets_ok,
+        dashboard_ok,
+        details: details.join("; "),
     }
 }

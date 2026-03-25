@@ -1,0 +1,9 @@
+target_url = "http://rest_observability:3000/"
+duration_seconds = 5
+requests_per_second = 1000
+concurrency = 4
+key_header = "x-api-key"
+
+[key_mode]
+mode = "single_key"
+key = "user1"

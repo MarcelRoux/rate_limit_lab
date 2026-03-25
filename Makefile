@@ -21,6 +21,8 @@ help:
 	@echo "  make obs-up         Start Prometheus + Grafana (9090, 3001)"
 	@echo "  make obs-down       Stop observability services"
 	@echo "  make obs-logs       Tail observability service logs"
+	@echo "  make obs-demo       Start containerized REST + Prometheus + Grafana, then run traffic"
+	@echo "  make obs-demo-down  Stop containerized observability demo services"
 	@echo "  make down           Stop all services started from this compose file"
 	@echo "  make reset          Stop all + remove volumes"
 	@echo ""
@@ -28,7 +30,8 @@ help:
 	@echo "  make test-all-targets     Run all integration tests - no features"
 	@echo "  make test-redis-backend   Run state_backend Redis integration tests"
 	@echo "  make ac                   Run acceptance smoke profile (Rust harness)"
-	@echo "  make ac-full              Run acceptance full implemented profile (Rust harness)"
+	@echo "  make ac-full              Run acceptance full profile (Rust harness)"
+	@echo "  make ac-obs               Run observability MVP profile with live checks (Rust harness)"
 	@echo "  make ac-one AT=AT-00X     Run a single acceptance test id (Rust harness)"
 	@echo ""
 	@echo "Environment:"
@@ -75,6 +78,14 @@ obs-down:
 obs-logs:
 	docker compose -f $(COMPOSE_FILE) logs -f prometheus grafana
 
+.PHONY: obs-demo
+obs-demo:
+	./scripts/obs/demo.sh
+
+.PHONY: obs-demo-down
+obs-demo-down:
+	./scripts/obs/demo_down.sh
+
 .PHONY: reset
 reset:
 	docker compose -f $(COMPOSE_FILE) down -v
@@ -108,6 +119,10 @@ ac:
 .PHONY: ac-full
 ac-full:
 	./scripts/eval/run.sh full
+
+.PHONY: ac-obs
+ac-obs:
+	./scripts/eval/run.sh obs
 
 .PHONY: ac-one
 ac-one:

@@ -1,6 +1,30 @@
 name: rate-limit-lab
 
 services:
+  rest_observability:
+    build:
+      context: ../..
+      dockerfile: docker/observability/rest/Dockerfile
+    image: rate-limit-lab-observability:dev
+    container_name: rest_observability
+    profiles: ["observability"]
+    command: ["rest_server", "--config", "configs/rest_server/observability_container.toml"]
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/metrics"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+
+  traffic_rest_observability:
+    image: rate-limit-lab-observability:dev
+    profiles: ["observability"]
+    command: ["rest_traffic", "--config", "configs/traffic_rest/smoke/observability_demo__single_key__steady__1000x4__5s.toml"]
+    depends_on:
+      rest_observability:
+        condition: service_healthy
+
   redis:
     image: redis:8.4
     container_name: redis
@@ -42,8 +66,6 @@ services:
       - ../observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
       interval: 5s

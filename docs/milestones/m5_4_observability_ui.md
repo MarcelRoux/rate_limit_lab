@@ -40,6 +40,7 @@ Candidate implementation locations:
   - metrics endpoint must be reachable,
   - scrape pipeline must be healthy,
   - dashboard provisioning must succeed for acceptance.
+- Live checks are opt-in for local runs via `EVAL_OBS_LIVE=1` (or `make ac-obs` wrapper).
 
 ### MVP Pipeline Choice
 
@@ -79,6 +80,13 @@ Follow-on path:
 - `AT-054` — Prometheus scrape config contract validation. (implemented)
 - `AT-055` — Grafana provisioning/dashboard contract validation. (implemented)
 - `AT-056` — Run/report observability evidence linkage. (implemented)
+
+## Developer Commands
+
+- `make ac-obs` runs `observability_mvp` with live checks enabled.
+- `make ac-one AT=AT-054` / `AT-055` / `AT-056` run contract checks by default.
+- `EVAL_OBS_LIVE=1 make ac-one AT=AT-054` (or `AT-055`) enables live probe mode for those ATs.
+- Live probe mode uses containerized demo services (REST + Prometheus + Grafana) rather than host-started REST processes.
 
 ## Related Documents
 
