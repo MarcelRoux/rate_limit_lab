@@ -9,6 +9,7 @@ use rate_limit_hybrid::{DistributedFailurePolicy, HybridLimiter, HybridLimiterCo
 
 #[cfg(feature = "hybrid_limiter")]
 use rest::config::HybridFailurePolicyMode;
+use rest::middleware::RateLimitPolicy;
 #[cfg(feature = "observability_ui")]
 use rest::observability::metrics_handler;
 use rest::{config::RestServerConfig, layer::RateLimitLayer};
@@ -129,6 +130,31 @@ async fn get_limiter(
     )
 }
 
+fn build_router<L>(cfg: &RestServerConfig, limiter: Arc<L>) -> Router
+where
+    L: RateLimitPolicy + Send + Sync + 'static,
+{
+    let base = Router::new()
+        .route("/", get(|| async { "ok" }))
+        .layer(RateLimitLayer::new(limiter));
+
+    #[cfg(feature = "observability_ui")]
+    {
+        if cfg.observability_enabled() {
+            log::info!("Observability UI metrics endpoint enabled at /metrics");
+            base.route("/metrics", get(metrics_handler))
+        } else {
+            base
+        }
+    }
+
+    #[cfg(not(feature = "observability_ui"))]
+    {
+        let _ = cfg;
+        base
+    }
+}
+
 #[tokio::main]
 async fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -140,14 +166,7 @@ async fn main() {
 
     let limiter = Arc::new(get_limiter(&cfg).await);
 
-    let app: Router = Router::new()
-        .route("/", get(|| async { "ok" }))
-        .layer(RateLimitLayer::new(limiter));
-    #[cfg(feature = "observability_ui")]
-    if cfg.observability_enabled() {
-        log::info!("Observability UI metrics endpoint enabled at /metrics");
-        app = app.route("/metrics", get(metrics_handler));
-    }
+    let app = build_router(&cfg, limiter);
 
     let addr: SocketAddr = cfg.bind_socket_addr();
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
