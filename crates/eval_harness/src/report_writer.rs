@@ -42,7 +42,7 @@ pub(crate) fn write_run_reports(
     };
 
     let report_md = format!(
-        "# Acceptance Run {}\n\n## Status\n- Status: {}\n\n## Evidence Links\n- Manifest: {}\n- Preflight: {}\n- Traces: {}\n- Summary: {}\n- Triage: {}\n{}\n{}\n\n{}\n## Key Metrics\n- decision_accuracy: {}\n- http_mapping_accuracy: {}\n- deny_ratio: {}\n- latency_ms_p95: {}\n- throughput_rps_observed: {}\n- artifact_completeness_rate: {}\n- backend_error_policy_conformance: {}\n- per_key_allow_variance: {}\n- global_target_drift_pct: {}\n\n## Reproducibility\n- gate_passed: {}\n- repeat_run_decision_delta_pp: {}\n- repeat_run_latency_p95_delta_pct: {}\n\n## Fairness/Drift Comparison\n{}\n\n## AT Results\n| AT ID | Status | Evidence |\n|---|---|---|\n{}\n",
+        "# Acceptance Run {}\n\n## Status\n- Status: {}\n\n## Evidence Links\n- Manifest: {}\n- Preflight: {}\n- Traces: {}\n- Summary: {}\n- Triage: {}\n{}\n{}\n\n{}\n## Key Metrics\n- decision_accuracy: {}\n- http_mapping_accuracy: {}\n- deny_ratio: {}\n- latency_ms_p95: {}\n- throughput_rps_observed: {}\n- artifact_completeness_rate: {}\n- backend_error_policy_conformance: {}\n- per_key_allow_variance: {}\n- global_target_drift_pct: {}\n\n## Reproducibility\n- gate_passed: {}\n- repeat_run_decision_delta_pp: {}\n- repeat_run_latency_p95_delta_pct: {}\n\n## Fairness/Drift Comparison\n{}\n\n## AT Results\n| AT ID | Status | Evidence |\n| --- | --- | --- |\n{}\n",
         run_id,
         summary.status,
         run_dir.join("manifest.json").display(),
