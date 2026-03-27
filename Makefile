@@ -18,8 +18,10 @@ help:
 	@echo "  make valkey-up      Start Valkey (6380->6379)"
 	@echo "  make valkey-down    Stop Valkey"
 	@echo "  make valkey-logs    Tail Valkey logs"
-	@echo "  make obs-up         Start Prometheus + Grafana (9090, 3001)"
-	@echo "  make obs-down       Stop observability services"
+	@echo "  make obs-up         Start containerized observability stack (REST + Prometheus + Grafana)"
+	@echo "  make obs-case       Run one traffic case against running observability stack (CASE=...)"
+	@echo "  make obs-cases      Run multiple traffic cases against running stack (CASES=\"...\")"
+	@echo "  make obs-down       Stop containerized observability stack"
 	@echo "  make obs-logs       Tail observability service logs"
 	@echo "  make obs-demo       Start containerized REST + Prometheus + Grafana, then run traffic"
 	@echo "  make obs-demo-down  Stop containerized observability demo services"
@@ -33,6 +35,7 @@ help:
 	@echo "  make ac-full              Run acceptance full profile (Rust harness)"
 	@echo "  make ac-obs               Run observability MVP profile with live checks (Rust harness)"
 	@echo "  make ac-one AT=AT-00X     Run a single acceptance test id (Rust harness)"
+	@echo "  make report               Compile all run artifacts into report outputs"
 	@echo ""
 	@echo "Environment:"
 	@echo "  make env                Show environment variables"
@@ -68,15 +71,23 @@ down:
 
 .PHONY: obs-up
 obs-up:
-	docker compose -f $(COMPOSE_FILE) --profile observability up -d prometheus grafana
+	./scripts/obs/up.sh
+
+.PHONY: obs-case
+obs-case:
+	./scripts/obs/case.sh "$(CASE)"
+
+.PHONY: obs-cases
+obs-cases:
+	./scripts/obs/cases.sh "$(CASES)"
 
 .PHONY: obs-down
 obs-down:
-	docker compose -f $(COMPOSE_FILE) --profile observability down
+	./scripts/obs/down.sh
 
 .PHONY: obs-logs
 obs-logs:
-	docker compose -f $(COMPOSE_FILE) logs -f prometheus grafana
+	docker compose -f $(COMPOSE_FILE) logs -f rest_observability prometheus grafana
 
 .PHONY: obs-demo
 obs-demo:
@@ -127,3 +138,7 @@ ac-obs:
 .PHONY: ac-one
 ac-one:
 	./scripts/eval/run.sh one "$(AT)"
+
+.PHONY: report
+report:
+	cargo run -p eval_harness -- compile --input evaluations/runs --output evaluations/reports
