@@ -15,6 +15,21 @@ cargo run -p traffic_rest --bin rest_traffic -- \
 - Traffic config controls workload only (RPS, concurrency, key mode, duration, target URL).
 - Pair this with a server config from `configs/rest_server/`.
 
+## Observability case registry
+
+- Registry file: `configs/traffic_rest/observability/case_registry.tsv`
+- Run one case by stable ID:
+
+```bash
+make obs-case CASE=OBS-001
+```
+
+- Run a batch:
+
+```bash
+make obs-cases CASES="OBS-001 OBS-002 OBS-003"
+```
+
 ## Minimum schema
 
 ```toml

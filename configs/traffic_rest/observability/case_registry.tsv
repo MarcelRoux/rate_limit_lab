@@ -1,0 +1,6 @@
+# case_id	config_path	description
+OBS-001	configs/traffic_rest/smoke/observability_demo__single_key__steady__1000x4__5s.toml	Single key steady baseline for observability demo.
+OBS-002	configs/traffic_rest/observability/obs_002_single_key_low_rate_200x2_8s.toml	Single key low-rate sustained load.
+OBS-003	configs/traffic_rest/observability/obs_003_single_key_high_rate_2000x8_5s.toml	Single key higher pressure load.
+OBS-004	configs/traffic_rest/observability/obs_004_round_robin_3keys_1200x6_8s.toml	Round-robin key distribution across three keys.
+OBS-005	configs/traffic_rest/observability/obs_005_keyless_500x4_6s.toml	Keyless traffic mode for anonymous path pressure.
